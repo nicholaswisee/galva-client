@@ -4,9 +4,7 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
-"compilerOptions": {
-    // ... all the existing Vite options ...
-    
+  "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
