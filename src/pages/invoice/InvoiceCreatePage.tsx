@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Save, Printer, FilePlus, Pencil, Trash, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import { DataSelect } from "@/components/data-select";
 import { useVendors, useDepartments, useBanks } from "@/lib/use-master-data";
 import { api } from "@/lib/api";
 import type { GRListItem } from "@/types";
+import { toast } from "sonner";
 
 interface GRLink {
   doku_LPB: string;
@@ -30,16 +32,21 @@ export function InvoiceCreatePage() {
   const { data: departments } = useDepartments();
   const { data: banks } = useBanks();
 
-  const [kode_Supplier, setKode_Supplier] = useState("");
+  const [doku, setDoku] = useState("");
   const [tgl, setTgl] = useState(new Date().toISOString().split("T")[0]);
+  const [kode_Supplier, setKode_Supplier] = useState("");
   const [kode_Dept, setKode_Dept] = useState("");
   const [kode_Bank, setKode_Bank] = useState("");
+  const [kode_Valas, setKode_Valas] = useState("Rp.");
+  const [kurs, setKurs] = useState(1.0);
   const [nilai, setNilai] = useState(0);
   const [ppn, setPpn] = useState(0);
   const [diskon, setDiskon] = useState(0);
   const [misc, setMisc] = useState(0);
   const [keterangan, setKeterangan] = useState("");
   const [grLinks, setGrLinks] = useState<GRLink[]>([]);
+  const [fakturPajak, setFakturPajak] = useState("");
+  const [tglFp, setTglFp] = useState("");
 
   const { data: grs } = useQuery<GRListItem[]>({
     queryKey: ["goods-receipts"],
@@ -66,7 +73,11 @@ export function InvoiceCreatePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      navigate({ to: "/invoices" });
+      toast.success("AP invoice created successfully");
+      navigate({ to: "/ap" });
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -82,14 +93,18 @@ export function InvoiceCreatePage() {
 
   const aggregatedGRTotal = grLinks.reduce((sum, link) => sum + link.nilaiLPB, 0);
   const mismatch = Math.abs(nilai - aggregatedGRTotal) > 0.01;
+  const totalAmountRp = (nilai + ppn - diskon + misc) * kurs;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     createInvoice.mutate({
+      doku: doku || null,
       kode_Supplier,
       tgl: new Date(tgl).toISOString(),
       kode_Dept: kode_Dept || null,
       kode_Bank: kode_Bank || null,
+      kode_Valas,
+      kurs,
       nilai,
       ppn,
       diskon,
@@ -106,41 +121,78 @@ export function InvoiceCreatePage() {
   const deptItems = departments?.map((d) => ({ code: d.kode, label: `${d.kode} - ${d.nama}` })) ?? [];
   const bankItems = banks?.map((b) => ({ code: b.kode, label: `${b.kode} - ${b.nama}` })) ?? [];
 
+  const selectedVendor = vendors?.find((v) => v.kode === kode_Supplier);
+
   return (
-    <div className="space-y-6 p-4 lg:p-6">
+    <div className="space-y-4 p-4 lg:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New AP Voucher</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create an AP voucher linked to goods receipts (3-way match)</p>
+        <h1 className="text-2xl font-semibold tracking-tight">AP Invoice</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Create AP invoice / voucher linked to goods receipts</p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="rounded-md border bg-card p-6">
-          <h2 className="mb-4 text-base font-semibold">Voucher Header</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Supplier</label>
-              <DataSelect items={vendorItems} value={kode_Supplier} onValueChange={setKode_Supplier} placeholder="Select supplier" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Date</label>
-              <Input type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Department</label>
-              <DataSelect items={deptItems} value={kode_Dept} onValueChange={setKode_Dept} placeholder="Select dept" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Bank</label>
-              <DataSelect items={bankItems} value={kode_Bank} onValueChange={setKode_Bank} placeholder="Select bank" />
-            </div>
-          </div>
-          <div className="mt-4 space-y-2">
-            <label className="text-sm font-medium">Keterangan</label>
-            <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={2} placeholder="Description" />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-2">
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><FilePlus className="size-4" />New</Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Pencil className="size-4" />Edit</Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Trash className="size-4" />Delete</Button>
+          <Button type="submit" variant="ghost" size="sm" className="gap-1.5" disabled={createInvoice.isPending}><Save className="size-4" />Save</Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Eye className="size-4" />Preview</Button>
+          <div className="ml-auto">
+            <Badge variant="outline">Draft</Badge>
           </div>
         </div>
+
+        {/* Header */}
+        <div className="rounded-md border bg-card p-4">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Header</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Invoice No.</label>
+              <Input value={doku} onChange={(e) => setDoku(e.target.value)} placeholder="e.g. 2203JKT999/E/0259" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Date</label>
+              <Input type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Vendor</label>
+              <DataSelect items={vendorItems} value={kode_Supplier} onValueChange={setKode_Supplier} placeholder="Select vendor" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Due Date</label>
+              <Input type="date" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Currency / Rate</label>
+              <div className="flex items-center gap-2">
+                <Input value={kode_Valas} onChange={(e) => setKode_Valas(e.target.value)} className="w-20" />
+                <Input type="number" step="0.01" value={kurs} onChange={(e) => setKurs(Number(e.target.value))} className="w-24" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Department</label>
+              <DataSelect items={deptItems} value={kode_Dept} onValueChange={setKode_Dept} placeholder="Select dept" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Bank</label>
+              <DataSelect items={bankItems} value={kode_Bank} onValueChange={setKode_Bank} placeholder="Select bank" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-cyan-600">FP# (Faktur Pajak)</label>
+              <Input value={fakturPajak} onChange={(e) => setFakturPajak(e.target.value)} placeholder="010.004.22.39895151" className="border-cyan-300" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-cyan-600">Tgl. FP</label>
+              <Input type="date" value={tglFp} onChange={(e) => setTglFp(e.target.value)} className="border-cyan-300" />
+            </div>
+          </div>
+        </div>
+
+        {/* GR Links */}
         <div className="rounded-md border bg-card">
-          <div className="flex items-center justify-between border-b p-4">
-            <h2 className="text-base font-semibold">Linked Goods Receipts</h2>
+          <div className="flex items-center justify-between border-b p-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Linked Goods Receipts</h2>
             <Button type="button" variant="outline" size="sm" onClick={addGRLink}>
               <Plus className="mr-1.5 size-3.5" />Add GR Link
             </Button>
@@ -148,8 +200,8 @@ export function InvoiceCreatePage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>GR Doku</TableHead>
-                <TableHead className="w-[180px] text-right">GR Nilai</TableHead>
+                <TableHead>GR No.</TableHead>
+                <TableHead className="w-[180px] text-right">GR Total</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -180,45 +232,68 @@ export function InvoiceCreatePage() {
             </TableBody>
           </Table>
           {grLinks.length > 0 && (
-            <div className="flex justify-end border-t p-4">
+            <div className="flex justify-end border-t p-3">
               <div className="text-sm font-medium">Aggregated GR Total: <span className="tabular-nums">{aggregatedGRTotal.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}</span></div>
             </div>
           )}
         </div>
-        <div className="rounded-md border bg-card p-6">
-          <h2 className="mb-4 text-base font-semibold">Voucher Amounts</h2>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nilai (Amount)</label>
-              <Input type="number" min="0" step="0.01" value={nilai} onChange={(e) => setNilai(Number(e.target.value))} required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">PPn</label>
-              <Input type="number" min="0" step="0.01" value={ppn} onChange={(e) => setPpn(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Diskon</label>
-              <Input type="number" min="0" step="0.01" value={diskon} onChange={(e) => setDiskon(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Misc</label>
-              <Input type="number" min="0" step="0.01" value={misc} onChange={(e) => setMisc(Number(e.target.value))} />
+
+        {/* Amounts */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-3 rounded-md border bg-card p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Keterangan</h2>
+            <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={4} placeholder="Description / notes..." />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Logdatabase</label>
+              <Button type="button" variant="outline" size="sm" className="w-full">Open Linked Document</Button>
             </div>
           </div>
-          {mismatch && grLinks.length > 0 && (
-            <div className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
-              3-way match warning: Voucher amount ({nilai.toLocaleString("id-ID")}) does not match aggregated GR total ({aggregatedGRTotal.toLocaleString("id-ID")}).
+          <div className="rounded-md border bg-card p-4">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Amounts</h2>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="tabular-nums font-medium">{nilai.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Disc Amount</span>
+                <span className="tabular-nums font-medium">{diskon.toLocaleString("id-ID", { style: "currency", currency: "IDR" })} ({((nilai > 0 ? diskon / nilai * 100 : 0)).toFixed(0)}%)</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Net. Amount</span>
+                <span className="tabular-nums font-medium">{(nilai - diskon).toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">DPP Nilai Lain</span>
+                <span className="tabular-nums font-medium">{(nilai - diskon).toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</span>
+              </div>
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-muted-foreground">VAT (PPn)</span>
+                <div className="flex items-center gap-2">
+                  <Input type="number" value={ppn} onChange={(e) => setPpn(Number(e.target.value))} className="h-7 w-24 text-right" />
+                  <span className="tabular-nums font-medium w-[100px] text-right">{ppn.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</span>
+                </div>
+              </div>
+              <div className="flex justify-between border-t pt-2 text-base font-semibold">
+                <span>Invoice Amount</span>
+                <span className="tabular-nums">{totalAmountRp.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</span>
+              </div>
+              {mismatch && grLinks.length > 0 && (
+                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
+                  3-way match warning: Voucher amount does not match aggregated GR total.
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-        {createInvoice.isError && (
-          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">{createInvoice.error.message}</div>
-        )}
-        <div className="flex gap-3">
-          <Button type="submit" disabled={createInvoice.isPending || grLinks.length === 0 || !kode_Supplier}>
-            {createInvoice.isPending ? "Saving..." : "Save Voucher"}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => navigate({ to: "/invoices" })}>Cancel</Button>
+
+        {/* Audit Footer */}
+        <div className="flex items-center justify-between rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+          <div className="flex gap-4">
+            <span>Last Update by: <span className="font-medium text-foreground">admin</span></span>
+            <span>Create by: <span className="font-medium text-foreground">admin</span></span>
+          </div>
+          <span>Date modified: {new Date().toLocaleString("id-ID")}</span>
         </div>
       </form>
     </div>

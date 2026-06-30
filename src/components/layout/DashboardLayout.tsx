@@ -11,14 +11,30 @@ import {
   X,
   BookOpen,
   ChevronRight,
+  FolderKanban,
+  Warehouse,
+  Landmark,
+  Factory,
+  CreditCard,
+  LandmarkIcon,
+  CheckCircle,
+  FileSpreadsheet,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
+interface NavItem {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  to: string;
+  match: (path: string) => boolean;
+}
+
 interface NavSection {
   title: string;
-  items: { label: string; icon: React.ComponentType<{ className?: string }>; to: string; match: (path: string) => boolean }[];
+  items: NavItem[];
 }
 
 const navSections: NavSection[] = [
@@ -31,21 +47,34 @@ const navSections: NavSection[] = [
   {
     title: "Procurement",
     items: [
-      { label: "Purchase Requisitions", icon: FileText, to: "/purchase-requisitions", match: (p) => p.startsWith("/purchase-requisitions") },
-      { label: "Purchase Orders", icon: ShoppingCart, to: "/purchase-orders", match: (p) => p.startsWith("/purchase-orders") },
-      { label: "Goods Receipts", icon: Package, to: "/goods-receipts", match: (p) => p.startsWith("/goods-receipts") },
+      { label: "Purchase Requisitions", icon: FileText, to: "/pr", match: (p) => p.startsWith("/pr") },
+      { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") },
+      { label: "PO Confirmation", icon: CheckCircle, to: "/po-confirm", match: (p) => p.startsWith("/po-confirm") },
+      { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") },
     ],
   },
   {
-    title: "Finance",
+    title: "Account Payable",
     items: [
-      { label: "Invoices", icon: Receipt, to: "/invoices", match: (p) => p.startsWith("/invoices") },
+      { label: "AP Invoices", icon: Receipt, to: "/ap", match: (p) => p.startsWith("/ap") && !p.includes("po-based") && !p.includes("voucher") },
+      { label: "Invoice AP (PO)", icon: FileSpreadsheet, to: "/ap/po-based/new", match: (p) => p.startsWith("/ap/po-based") },
+      { label: "AP Voucher", icon: Wallet, to: "/ap/voucher/new", match: (p) => p.startsWith("/ap/voucher") },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Project", icon: FolderKanban, to: "/project", match: (p) => p.startsWith("/project") },
+      { label: "Inventory", icon: Warehouse, to: "/inv", match: (p) => p.startsWith("/inv") },
+      { label: "Account Receivable", icon: CreditCard, to: "/ar", match: (p) => p.startsWith("/ar") },
+      { label: "PPIC", icon: Factory, to: "/ppic", match: (p) => p.startsWith("/ppic") },
+      { label: "Banking", icon: LandmarkIcon, to: "/bank", match: (p) => p.startsWith("/bank") },
     ],
   },
   {
     title: "Reference",
     items: [
-      { label: "Master Data", icon: BookOpen, to: "/master-data", match: (p) => p.startsWith("/master-data") },
+      { label: "Master Data", icon: BookOpen, to: "/md", match: (p) => p.startsWith("/md") },
     ],
   },
 ];
@@ -58,7 +87,7 @@ export function DashboardLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate({ to: "/login" });
+    navigate({ to: "/in" });
   };
 
   const currentPath = location.pathname;
@@ -133,7 +162,7 @@ export function DashboardLayout() {
             <Menu className="size-5" />
           </button>
           <span className="text-sm font-medium text-muted-foreground">
-            Account Payable
+            Galva ERP
           </span>
           <div className="ml-auto flex items-center gap-3">
             <span className="text-xs text-muted-foreground">admin</span>

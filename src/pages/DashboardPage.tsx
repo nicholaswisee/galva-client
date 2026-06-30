@@ -125,10 +125,10 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Purchase Requisitions" count={prs?.length} icon={FileText} to="/purchase-requisitions" />
-        <StatCard label="Purchase Orders" count={pos?.length} icon={ShoppingCart} to="/purchase-orders" />
-        <StatCard label="Goods Receipts" count={grs?.length} icon={Package} to="/goods-receipts" />
-        <StatCard label="AP Vouchers" count={invoices?.length} icon={Receipt} to="/invoices" />
+        <StatCard label="Purchase Requisitions" count={prs?.length} icon={FileText} to="/pr" />
+        <StatCard label="Purchase Orders" count={pos?.length} icon={ShoppingCart} to="/po" />
+        <StatCard label="Goods Receipts" count={grs?.length} icon={Package} to="/gr" />
+        <StatCard label="AP Invoices" count={invoices?.length} icon={Receipt} to="/ap" />
       </div>
 
       <Card>
@@ -137,13 +137,13 @@ export function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <PipelineStage label="PR (SPB)" count={prs?.length} to="/purchase-requisitions" />
+            <PipelineStage label="PR (SPB)" count={prs?.length} to="/pr" />
             <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            <PipelineStage label="PO" count={pos?.length} to="/purchase-orders" />
+            <PipelineStage label="PO" count={pos?.length} to="/po" />
             <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            <PipelineStage label="GR (LPB)" count={grs?.length} to="/goods-receipts" />
+            <PipelineStage label="GR (LPB)" count={grs?.length} to="/gr" />
             <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            <PipelineStage label="Voucher" count={invoices?.length} to="/invoices" />
+            <PipelineStage label="AP" count={invoices?.length} to="/ap" />
           </div>
         </CardContent>
       </Card>
@@ -152,7 +152,7 @@ export function DashboardPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Recent AP Vouchers</CardTitle>
-            <Link to="/invoices" className="text-xs text-muted-foreground hover:text-foreground">
+            <Link to="/ap" className="text-xs text-muted-foreground hover:text-foreground">
               View all
             </Link>
           </div>

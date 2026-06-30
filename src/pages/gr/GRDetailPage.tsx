@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { api } from "@/lib/api";
-import type { PRDetail } from "@/types";
+import type { GRDetail } from "@/types";
 
-export function PRDetailPage() {
+export function GRDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
-  const { data: pr, isLoading } = useQuery<PRDetail>({
-    queryKey: ["purchase-requisitions", id],
+  const { data: gr, isLoading } = useQuery<GRDetail>({
+    queryKey: ["goods-receipts", id],
     queryFn: async () => {
-      const res = await api.get(`/api/purchase-requisitions/${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error("Failed to fetch PR");
+      const res = await api.get(`/api/goods-receipts/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error("Failed to fetch GR");
       return res.json();
     },
     enabled: !!id,
@@ -23,17 +23,17 @@ export function PRDetailPage() {
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to="/pr">
+          <Link to="/gr">
             <Button variant="ghost" size="icon" className="size-8">
               <ArrowLeft className="size-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">PR {id}</h1>
-            <p className="text-sm text-muted-foreground">Purchase Requisition Details</p>
+            <h1 className="text-2xl font-semibold tracking-tight">GR {id}</h1>
+            <p className="text-sm text-muted-foreground">Goods Receipt Details</p>
           </div>
         </div>
-        {pr && <StatusBadge status={pr.status} />}
+        {gr && <StatusBadge status={gr.status} />}
       </div>
 
       {isLoading ? (
@@ -41,9 +41,9 @@ export function PRDetailPage() {
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
-      ) : !pr ? (
+      ) : !gr ? (
         <div className="rounded-lg border bg-card p-12 text-center">
-          <p className="text-sm text-muted-foreground">Purchase requisition not found.</p>
+          <p className="text-sm text-muted-foreground">Goods receipt not found.</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -52,37 +52,41 @@ export function PRDetailPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <div className="text-xs text-muted-foreground">Document No</div>
-                <div className="text-sm font-medium">{pr.doku}</div>
+                <div className="text-sm font-medium">{gr.doku}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Date</div>
-                <div className="text-sm font-medium">{pr.tgl?.split("T")[0] ?? "-"}</div>
+                <div className="text-sm font-medium">{gr.tgl?.split("T")[0] ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Department</div>
-                <div className="text-sm font-medium">{pr.kode_Dept ?? "-"}</div>
+                <div className="text-xs text-muted-foreground">PO Reference</div>
+                <div className="text-sm font-medium">{gr.doku_PO ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Salesman</div>
-                <div className="text-sm font-medium">{pr.kode_Sales ?? "-"}</div>
+                <div className="text-xs text-muted-foreground">Supplier</div>
+                <div className="text-sm font-medium">{gr.supplierName ?? gr.kode_Supplier ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">NPO</div>
-                <div className="text-sm font-medium">{pr.npo ?? "-"}</div>
+                <div className="text-xs text-muted-foreground">Surat Jalan</div>
+                <div className="text-sm font-medium">{gr.suratJalan ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Total</div>
-                <div className="text-sm font-medium tabular-nums">{pr.total?.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</div>
+                <div className="text-xs text-muted-foreground">Nilai</div>
+                <div className="text-sm font-medium tabular-nums">{gr.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Status</div>
-                <div className="text-sm font-medium">{pr.status}</div>
+                <div className="text-sm font-medium">{gr.status}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">STS</div>
+                <div className="text-sm font-medium">{gr.sts}</div>
               </div>
             </div>
-            {pr.memo && (
+            {gr.memo && (
               <div className="mt-4">
                 <div className="text-xs text-muted-foreground">Memo</div>
-                <div className="mt-1 text-sm">{pr.memo}</div>
+                <div className="mt-1 text-sm">{gr.memo}</div>
               </div>
             )}
           </div>

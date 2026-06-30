@@ -27,7 +27,8 @@ async function refreshAccessToken(): Promise<boolean> {
 
 export async function apiFetch(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  isRetry = false
 ): Promise<Response> {
   const headers = new Headers(options.headers);
   if (accessToken) {
@@ -47,12 +48,10 @@ export async function apiFetch(
     credentials: "include",
   });
 
-  if (res.status === 401 && !(options.headers as Record<string, string>)?.["X-Retry"]) {
+  if (res.status === 401 && !isRetry) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      const retryHeaders = new Headers(headers);
-      retryHeaders.set("X-Retry", "1");
-      return apiFetch(path, { ...options, headers: retryHeaders });
+      return apiFetch(path, options, true);
     }
   }
 

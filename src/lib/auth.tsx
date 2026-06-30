@@ -9,6 +9,7 @@ import { api, apiFetch, getAccessToken, setAccessToken } from "./api";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
@@ -19,14 +20,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => getAccessToken() !== null
   );
+  // Start as loading so the AuthGuard waits for the silent refresh
+  // before deciding whether to redirect to the login page.
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const trySilentRefresh = async () => {
-      const res = await apiFetch("/api/auth/refresh", { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        setAccessToken(data.accessToken);
-        setIsAuthenticated(true);
+      try {
+        const res = await apiFetch("/api/auth/refresh", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          setAccessToken(data.accessToken);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
     trySilentRefresh();
@@ -48,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

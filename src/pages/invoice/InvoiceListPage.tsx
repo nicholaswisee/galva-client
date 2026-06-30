@@ -12,10 +12,15 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
+import { Pagination } from "@/components/pagination";
 import { api } from "@/lib/api";
 import type { InvoiceListItem } from "@/types";
+import { useState } from "react";
+
+const PAGE_SIZE = 10;
 
 export function InvoiceListPage() {
+  const [page, setPage] = useState(1);
   const { data: invoices, isLoading } = useQuery<InvoiceListItem[]>({
     queryKey: ["invoices"],
     queryFn: async () => {
@@ -25,15 +30,18 @@ export function InvoiceListPage() {
     },
   });
 
+  const total = invoices?.length ?? 0;
+  const paginated = invoices?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [];
+
   return (
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AP Vouchers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage AP vouchers (VoucherAP)</p>
+          <h1 className="text-2xl font-semibold tracking-tight">AP Invoices</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage AP invoices and vouchers</p>
         </div>
-        <Link to="/invoices/new">
-          <Button><Plus className="mr-1.5 size-4" />New Voucher</Button>
+        <Link to="/ap/new">
+          <Button><Plus className="mr-1.5 size-4" />New Invoice</Button>
         </Link>
       </div>
       <div className="rounded-md border bg-card">
@@ -58,15 +66,15 @@ export function InvoiceListPage() {
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                 </TableRow>
               ))
-            ) : !invoices || invoices.length === 0 ? (
+            ) : !paginated || paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-32 text-center text-sm text-muted-foreground">
-                  No AP vouchers yet. Create a GR first, then link it to a voucher.
+                  No AP invoices yet. Create a GR first, then link it to an invoice.
                 </TableCell>
               </TableRow>
             ) : (
-              invoices.map((inv) => (
-                <TableRow key={inv.doku}>
+              paginated.map((inv) => (
+                <TableRow key={inv.doku} className="cursor-pointer" onClick={() => window.location.href = `/ap/${inv.doku}`}>
                   <TableCell className="font-medium">{inv.doku}</TableCell>
                   <TableCell className="text-sm">{inv.supplierName ?? inv.kode_Supplier ?? "-"}</TableCell>
                   <TableCell className="text-sm">{inv.tgl?.split("T")[0] ?? "-"}</TableCell>
@@ -77,6 +85,7 @@ export function InvoiceListPage() {
             )}
           </TableBody>
         </Table>
+        <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
       </div>
     </div>
   );

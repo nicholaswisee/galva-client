@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export function LoginPage() {
   const [username, setUsername] = useState("");
@@ -19,6 +20,7 @@ export function LoginPage() {
     const success = await login(username, password);
     setLoading(false);
     if (success) {
+      toast.success("Welcome back!");
       navigate({ to: "/" });
     } else {
       setError("Invalid username or password");
