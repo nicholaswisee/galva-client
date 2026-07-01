@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useState } from "react";
 const PAGE_SIZE = 10;
 
 export function InvoiceListPage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data: invoices, isLoading } = useQuery<InvoiceListItem[]>({
     queryKey: ["invoices"],
@@ -74,7 +75,7 @@ export function InvoiceListPage() {
               </TableRow>
             ) : (
               paginated.map((inv) => (
-                <TableRow key={inv.doku} className="cursor-pointer" onClick={() => window.location.href = `/ap/${inv.doku}`}>
+                <TableRow key={inv.doku} className="cursor-pointer" onClick={() => navigate({ to: "/ap/$id", params: { id: inv.doku } })}>
                   <TableCell className="font-medium">{inv.doku}</TableCell>
                   <TableCell className="text-sm">{inv.supplierName ?? inv.kode_Supplier ?? "-"}</TableCell>
                   <TableCell className="text-sm">{inv.tgl?.split("T")[0] ?? "-"}</TableCell>

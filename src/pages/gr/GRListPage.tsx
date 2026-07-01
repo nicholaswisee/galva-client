@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useState } from "react";
 const PAGE_SIZE = 10;
 
 export function GRListPage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data: grs, isLoading } = useQuery<GRListItem[]>({
     queryKey: ["goods-receipts"],
@@ -76,7 +77,7 @@ export function GRListPage() {
               </TableRow>
             ) : (
               paginated.map((gr) => (
-                <TableRow key={gr.doku} className="cursor-pointer" onClick={() => window.location.href = `/gr/${gr.doku}`}>
+                <TableRow key={gr.doku} className="cursor-pointer" onClick={() => navigate({ to: "/gr/$id", params: { id: gr.doku } })}>
                   <TableCell className="font-medium">{gr.doku}</TableCell>
                   <TableCell className="text-sm">{gr.doku_PO ?? "-"}</TableCell>
                   <TableCell className="text-sm">{gr.supplierName ?? gr.kode_Supplier ?? "-"}</TableCell>

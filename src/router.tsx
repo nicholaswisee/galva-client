@@ -40,7 +40,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // the access token hasn't been restored yet.
   if (isLoading) return null;
   if (!isAuthenticated) {
-    return <Navigate to="/in" search={{ redirect: location.href }} />;
+    return <Navigate to="/in" search={{ redirect: location.pathname }} />;
   }
   return <>{children}</>;
 }
@@ -53,6 +53,9 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/in",
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: search.redirect as string | undefined,
+  }),
 });
 
 const dashboardLayoutRoute = createRoute({

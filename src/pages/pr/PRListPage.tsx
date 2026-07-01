@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useState } from "react";
 const PAGE_SIZE = 10;
 
 export function PRListPage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data: prs, isLoading } = useQuery<PRListItem[]>({
     queryKey: ["purchase-requisitions"],
@@ -72,7 +73,7 @@ export function PRListPage() {
               </TableRow>
             ) : (
               paginated.map((pr) => (
-                <TableRow key={pr.doku} className="cursor-pointer" onClick={() => window.location.href = `/pr/${pr.doku}`}>
+                <TableRow key={pr.doku} className="cursor-pointer" onClick={() => navigate({ to: "/pr/$id", params: { id: pr.doku } })}>
                   <TableCell className="font-medium">{pr.doku}</TableCell>
                   <TableCell className="text-sm">{pr.tgl?.split("T")[0] ?? "-"}</TableCell>
                   <TableCell className="text-sm">{pr.kode_Dept ?? "-"}</TableCell>

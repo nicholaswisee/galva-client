@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useState } from "react";
 const PAGE_SIZE = 10;
 
 export function POListPage() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data: pos, isLoading } = useQuery<POListItem[]>({
     queryKey: ["purchase-orders"],
@@ -74,7 +75,7 @@ export function POListPage() {
               </TableRow>
             ) : (
               paginated.map((po) => (
-                <TableRow key={po.doku} className="cursor-pointer" onClick={() => window.location.href = `/po/${po.doku}`}>
+                <TableRow key={po.doku} className="cursor-pointer" onClick={() => navigate({ to: "/po/$id", params: { id: po.doku } })}>
                   <TableCell className="font-medium">{po.doku}</TableCell>
                   <TableCell className="text-sm">{po.supplierName ?? po.kode_Supplier ?? "-"}</TableCell>
                   <TableCell className="text-sm">{po.tgl?.split("T")[0] ?? "-"}</TableCell>

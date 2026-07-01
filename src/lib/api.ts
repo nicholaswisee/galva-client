@@ -1,6 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5132";
+const TOKEN_KEY = "galva_access_token";
 
-let accessToken: string | null = null;
+let accessToken: string | null = localStorage.getItem(TOKEN_KEY);
 
 export function getAccessToken(): string | null {
   return accessToken;
@@ -8,6 +9,11 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }
 
 async function refreshAccessToken(): Promise<boolean> {

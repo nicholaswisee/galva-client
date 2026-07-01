@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -13,17 +13,21 @@ import {
   ChevronRight,
   FolderKanban,
   Warehouse,
-  Landmark,
   Factory,
   CreditCard,
   LandmarkIcon,
   CheckCircle,
   FileSpreadsheet,
   Wallet,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+
+const MODULE_KEY = "galva_active_module";
+
+type ModuleId = "ap" | "project" | "inventory" | "ar" | "ppic" | "banking";
 
 interface NavItem {
   label: string;
@@ -37,18 +41,27 @@ interface NavSection {
   items: NavItem[];
 }
 
-const navSections: NavSection[] = [
+const moduleLabels: Record<ModuleId, string> = {
+  ap: "Accounts Payable",
+  project: "Project",
+  inventory: "Inventory",
+  ar: "Account Receivable",
+  ppic: "PPIC",
+  banking: "Banking",
+};
+
+const apSections: NavSection[] = [
   {
     title: "Overview",
     items: [
-      { label: "Dashboard", icon: LayoutDashboard, to: "/", match: (p) => p === "/" },
+      { label: "Dashboard", icon: LayoutDashboard, to: "/ap", match: (p) => p === "/ap" },
     ],
   },
   {
     title: "Procurement",
     items: [
       { label: "Purchase Requisitions", icon: FileText, to: "/pr", match: (p) => p.startsWith("/pr") },
-      { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") },
+      { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") && !p.startsWith("/po-confirm") },
       { label: "PO Confirmation", icon: CheckCircle, to: "/po-confirm", match: (p) => p.startsWith("/po-confirm") },
       { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") },
     ],
@@ -62,22 +75,109 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Operations",
-    items: [
-      { label: "Project", icon: FolderKanban, to: "/project", match: (p) => p.startsWith("/project") },
-      { label: "Inventory", icon: Warehouse, to: "/inv", match: (p) => p.startsWith("/inv") },
-      { label: "Account Receivable", icon: CreditCard, to: "/ar", match: (p) => p.startsWith("/ar") },
-      { label: "PPIC", icon: Factory, to: "/ppic", match: (p) => p.startsWith("/ppic") },
-      { label: "Banking", icon: LandmarkIcon, to: "/bank", match: (p) => p.startsWith("/bank") },
-    ],
-  },
-  {
     title: "Reference",
     items: [
       { label: "Master Data", icon: BookOpen, to: "/md", match: (p) => p.startsWith("/md") },
     ],
   },
 ];
+
+const projectSections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, to: "/project", match: (p) => p === "/project" },
+    ],
+  },
+  {
+    title: "Project",
+    items: [
+      { label: "Project", icon: FolderKanban, to: "/project", match: (p) => p.startsWith("/project") },
+    ],
+  },
+];
+
+const inventorySections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, to: "/inv", match: (p) => p === "/inv" },
+    ],
+  },
+  {
+    title: "Inventory",
+    items: [
+      { label: "Inventory", icon: Warehouse, to: "/inv", match: (p) => p.startsWith("/inv") },
+    ],
+  },
+];
+
+const arSections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, to: "/ar", match: (p) => p === "/ar" },
+    ],
+  },
+  {
+    title: "Account Receivable",
+    items: [
+      { label: "Account Receivable", icon: CreditCard, to: "/ar", match: (p) => p.startsWith("/ar") },
+    ],
+  },
+];
+
+const ppicSections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, to: "/ppic", match: (p) => p === "/ppic" },
+    ],
+  },
+  {
+    title: "PPIC",
+    items: [
+      { label: "PPIC", icon: Factory, to: "/ppic", match: (p) => p.startsWith("/ppic") },
+    ],
+  },
+];
+
+const bankingSections: NavSection[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, to: "/bank", match: (p) => p === "/bank" },
+    ],
+  },
+  {
+    title: "Banking",
+    items: [
+      { label: "Banking", icon: LandmarkIcon, to: "/bank", match: (p) => p.startsWith("/bank") },
+    ],
+  },
+];
+
+function getActiveModuleFromPath(path: string): ModuleId | null {
+  if (path.startsWith("/pr") || path.startsWith("/po") || path.startsWith("/gr") || path.startsWith("/ap") || path.startsWith("/po-confirm") || path.startsWith("/md")) return "ap";
+  if (path.startsWith("/project")) return "project";
+  if (path.startsWith("/inv")) return "inventory";
+  if (path.startsWith("/ar")) return "ar";
+  if (path.startsWith("/ppic")) return "ppic";
+  if (path.startsWith("/bank")) return "banking";
+  return null;
+}
+
+function getNavSections(module: ModuleId | null): NavSection[] {
+  switch (module) {
+    case "ap": return apSections;
+    case "project": return projectSections;
+    case "inventory": return inventorySections;
+    case "ar": return arSections;
+    case "ppic": return ppicSections;
+    case "banking": return bankingSections;
+    default: return [];
+  }
+}
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -87,10 +187,17 @@ export function DashboardLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate({ to: "/in" });
+    localStorage.removeItem(MODULE_KEY);
+    navigate({ to: "/in", search: { redirect: undefined } });
   };
 
   const currentPath = location.pathname;
+  const activeModule = currentPath === "/" ? null : (getActiveModuleFromPath(currentPath) || (localStorage.getItem(MODULE_KEY) as ModuleId | null));
+  const navSections = useMemo(() => getNavSections(activeModule), [activeModule]);
+
+  const handleSwitchModule = () => {
+    navigate({ to: "/" });
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -113,6 +220,23 @@ export function DashboardLayout() {
             <X className="size-4" />
           </button>
         </div>
+
+        {activeModule && (
+          <div className="border-b px-4 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {moduleLabels[activeModule]}
+              </span>
+              <button
+                onClick={handleSwitchModule}
+                className="flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                <ArrowLeft className="size-3" />
+                Modules
+              </button>
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 overflow-y-auto py-3">
           {navSections.map((section) => (
@@ -164,6 +288,11 @@ export function DashboardLayout() {
           <span className="text-sm font-medium text-muted-foreground">
             Galva ERP
           </span>
+          {activeModule && (
+            <span className="text-xs text-muted-foreground">
+              {moduleLabels[activeModule]}
+            </span>
+          )}
           <div className="ml-auto flex items-center gap-3">
             <span className="text-xs text-muted-foreground">admin</span>
           </div>

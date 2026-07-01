@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
@@ -12,6 +12,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: "/in" });
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -21,7 +22,7 @@ export function LoginPage() {
     setLoading(false);
     if (success) {
       toast.success("Welcome back!");
-      navigate({ to: "/" });
+      navigate({ to: redirect ?? "/" });
     } else {
       setError("Invalid username or password");
     }
