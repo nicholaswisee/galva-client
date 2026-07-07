@@ -33,7 +33,7 @@ export function InvoiceDetailPage() {
             <p className="text-sm text-muted-foreground">AP Invoice Details</p>
           </div>
         </div>
-        {inv && <StatusBadge status={inv.status} />}
+        {inv && <StatusBadge status={inv.sts ?? "0"} />}
       </div>
 
       {isLoading ? (
@@ -67,10 +67,6 @@ export function InvoiceDetailPage() {
                 <div className="text-sm font-medium">{inv.kode_Dept ?? "-"}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Bank</div>
-                <div className="text-sm font-medium">{inv.kode_Bank ?? "-"}</div>
-              </div>
-              <div>
                 <div className="text-xs text-muted-foreground">Nilai</div>
                 <div className="text-sm font-medium tabular-nums">{inv.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</div>
               </div>
@@ -85,10 +81,6 @@ export function InvoiceDetailPage() {
               <div>
                 <div className="text-xs text-muted-foreground">Misc</div>
                 <div className="text-sm font-medium tabular-nums">{inv.misc?.toLocaleString("id-ID", { style: "currency", currency: "IDR" })}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Status</div>
-                <div className="text-sm font-medium">{inv.status}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">STS</div>

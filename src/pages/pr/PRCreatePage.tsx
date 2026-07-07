@@ -97,7 +97,6 @@ export function PRCreatePage() {
 
   const deptItems = departments?.map((d) => ({ code: d.kode, label: `${d.kode} - ${d.nama}` })) ?? [];
   const inventoryItems = inventory?.map((i) => ({ code: i.kode, label: `${i.kode} - ${i.nama}` })) ?? [];
-  const total = lineItems.reduce((sum, item) => sum + item.jumlah * 0, 0);
 
   return (
     <div className="space-y-4 p-4 lg:p-6">

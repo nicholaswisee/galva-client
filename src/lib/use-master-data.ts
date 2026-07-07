@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
-import type { Vendor, Department, InventoryItem, Warehouse, Bank } from "@/types";
+import type { Vendor, Department, InventoryItem, Warehouse, Bank, Currency, PODetail } from "@/types";
 
 export function useVendors() {
   return useQuery<Vendor[]>({
@@ -59,5 +59,34 @@ export function useBanks() {
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+const CURRENCIES: Currency[] = [
+  { kode: "Rp.", nama: "Rupiah", kurs: 1 },
+  { kode: "USD", nama: "US Dollar", kurs: 17500 },
+  { kode: "EUR", nama: "Euro", kurs: 19000 },
+  { kode: "SGD", nama: "Singapore Dollar", kurs: 13000 },
+];
+
+export function useCurrencies() {
+  return useQuery<Currency[]>({
+    queryKey: ["master-data", "currencies"],
+    queryFn: async () => CURRENCIES,
+    staleTime: Infinity,
+  });
+}
+
+export function usePODetail(doku: string | null) {
+  return useQuery<PODetail>({
+    queryKey: ["purchase-order", doku],
+    queryFn: async () => {
+      if (!doku) throw new Error("Doku is required");
+      const res = await api.get(`/api/purchase-orders/${encodeURIComponent(doku)}`);
+      if (!res.ok) throw new Error("Failed to fetch PO detail");
+      return res.json();
+    },
+    enabled: !!doku,
+    staleTime: 0,
   });
 }

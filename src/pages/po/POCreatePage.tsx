@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Save, Printer, FilePlus, Pencil, Trash, Eye, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Eye, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,16 +15,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataSelect } from "@/components/data-select";
-import { useVendors, useDepartments, useInventory, useWarehouses } from "@/lib/use-master-data";
+import { useVendors, useDepartments, useInventory, useWarehouses, useCurrencies } from "@/lib/use-master-data";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 interface POLineItem {
   kode_Brg: string;
-  brand: string;
+  merk: string;
   model: string;
   jumlah: number;
-  unit: string;
+  satuan: string;
   harga: number;
   discPct: number;
   disc: number;
@@ -42,6 +42,7 @@ export function POCreatePage() {
   const { data: departments } = useDepartments();
   const { data: inventory } = useInventory();
   const { data: warehouses } = useWarehouses();
+  const { data: currencies } = useCurrencies();
 
   const [doku, setDoku] = useState("");
   const [tgl, setTgl] = useState(new Date().toISOString().split("T")[0]);
@@ -60,14 +61,31 @@ export function POCreatePage() {
   const [dppNilaiLain, setDppNilaiLain] = useState(0);
   const [vat, setVat] = useState(0);
   const [purchaseAmount, setPurchaseAmount] = useState(0);
-  const [ppnPct, setPpnPct] = useState(10);
+  const [ppnPct, setPpnPct] = useState(12);
 
   const createPO = useMutation({
     mutationFn: async (payload: unknown) => {
       const res = await api.post("/api/purchase-orders", payload);
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        throw new Error(err?.detail ?? err?.error ?? "Failed to create PO");
+        const detail =
+          err?.detail ?? err?.error ?? err?.message ?? "Failed to create PO";
+        let message: string;
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (Array.isArray(detail)) {
+          message = detail
+            .map((e: { path?: unknown; message?: string }) => {
+              const path = Array.isArray(e?.path) ? e.path.join(".") : String(e?.path ?? "");
+              return path ? `${path}: ${e?.message ?? "invalid"}` : (e?.message ?? "invalid");
+            })
+            .join("; ");
+        } else if (detail && typeof detail === "object") {
+          message = JSON.stringify(detail);
+        } else {
+          message = "Failed to create PO";
+        }
+        throw new Error(message);
       }
       return res.json();
     },
@@ -81,7 +99,7 @@ export function POCreatePage() {
     },
   });
 
-  const addLineItem = () => setLineItems([...lineItems, { kode_Brg: "", brand: "", model: "", jumlah: 1, unit: "PC", harga: 0, discPct: 0, disc: 0, total: 0, kode_Gudang: "", schedule: "", description: "", note: "" }]);
+  const addLineItem = () => setLineItems([...lineItems, { kode_Brg: "", merk: "", model: "", jumlah: 1, satuan: "PC", harga: 0, discPct: 0, disc: 0, total: 0, kode_Gudang: "", schedule: "", description: "", note: "" }]);
   const removeLineItem = (index: number) => setLineItems(lineItems.filter((_, i) => i !== index));
 
   const updateLineItem = (index: number, field: keyof POLineItem, value: string | number) => {
@@ -89,7 +107,12 @@ export function POCreatePage() {
     updated[index] = { ...updated[index], [field]: value };
     if (field === "kode_Brg") {
       const inv = inventory?.find((i) => i.kode === value);
-      if (inv) updated[index].description = inv.nama;
+      if (inv) {
+        updated[index].description = inv.nama;
+        updated[index].merk = inv.merk ?? "";
+        updated[index].satuan = inv.satuan ?? "PC";
+        updated[index].harga = inv.harga ?? 0;
+      }
     }
     if (field === "jumlah" || field === "harga" || field === "discPct") {
       const item = updated[index];
@@ -117,8 +140,37 @@ export function POCreatePage() {
     setPurchaseAmount(total);
   };
 
+  const handleCurrencyChange = (code: string) => {
+    setKode_Valas(code);
+    const currency = currencies?.find((c) => c.kode === code);
+    setKurs(currency?.kurs ?? 1);
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (!kode_Supplier) {
+      toast.error("Please select a vendor");
+      return;
+    }
+    if (!kode_dept) {
+      toast.error("Please select a department");
+      return;
+    }
+    if (lineItems.length === 0) {
+      toast.error("Add at least one line item");
+      return;
+    }
+    for (let i = 0; i < lineItems.length; i++) {
+      const li = lineItems[i];
+      if (!li.kode_Brg) {
+        toast.error(`Line ${i + 1}: missing stock code`);
+        return;
+      }
+      if (!li.jumlah || li.jumlah <= 0) {
+        toast.error(`Line ${i + 1}: quantity must be greater than 0`);
+        return;
+      }
+    }
     createPO.mutate({
       doku: doku || null,
       kode_Supplier,
@@ -127,13 +179,28 @@ export function POCreatePage() {
       kode_Valas,
       kurs,
       syarat,
+      ppn: ppnPct,
+      diskon: discAmount,
+      dppNilaiLain,
+      ppnTunai: 0,
       memo: memo || null,
       lineItems: lineItems.map((item) => ({
         kode_Brg: item.kode_Brg,
+        merk: item.merk || null,
+        model: item.model || null,
+        satuan: item.satuan || null,
         jumlah: item.jumlah,
         harga: item.harga,
+        discPct: item.discPct,
+        disc: item.disc,
+        total: item.total,
         kode_Gudang: item.kode_Gudang || null,
         alias: item.description || null,
+        note: item.note || null,
+        schedule: item.schedule || null,
+        kode_Valas,
+        kurs,
+        ppn: item.total * (ppnPct / 100),
       })),
     });
   };
@@ -142,6 +209,7 @@ export function POCreatePage() {
   const deptItems = departments?.map((d) => ({ code: d.kode, label: `${d.kode} - ${d.nama}` })) ?? [];
   const inventoryItems = inventory?.map((i) => ({ code: i.kode, label: `${i.kode} - ${i.nama}` })) ?? [];
   const warehouseItems = warehouses?.map((w) => ({ code: w.kode, label: `${w.kode} - ${w.nama}` })) ?? [];
+  const currencyItems = currencies?.map((c) => ({ code: c.kode, label: `${c.kode} - ${c.nama}` })) ?? [];
 
   const selectedVendor = vendors?.find((v) => v.kode === kode_Supplier);
 
@@ -172,7 +240,7 @@ export function POCreatePage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Order No.</label>
-              <Input value={doku} onChange={(e) => setDoku(e.target.value)} placeholder="Auto-generated" />
+              <Input value={doku} onChange={(e) => setDoku(e.target.value)} placeholder="Auto-generated" readOnly />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Date</label>
@@ -195,11 +263,14 @@ export function POCreatePage() {
               <label className="text-xs font-medium">Department</label>
               <DataSelect items={deptItems} value={kode_dept} onValueChange={setKode_dept} placeholder="Select dept" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium">Currency</label>
+            <div className="space-y-1.5 lg:col-span-2">
+              <label className="text-xs font-medium">Currency / Rate</label>
               <div className="flex items-center gap-2">
-                <Input value={kode_Valas} onChange={(e) => setKode_Valas(e.target.value)} className="w-20" />
-                <Input type="number" step="0.01" value={kurs} onChange={(e) => setKurs(Number(e.target.value))} className="w-24" />
+                <DataSelect items={currencyItems} value={kode_Valas} onValueChange={handleCurrencyChange} placeholder="Currency" />
+                <Input type="number" step="0.01" value={kurs} readOnly className="w-32" />
+                {kode_Valas !== "Rp." && (
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">1 {kode_Valas} = {kurs.toLocaleString("id-ID")} Rp.</span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 pt-5">
@@ -227,12 +298,12 @@ export function POCreatePage() {
                   <TableHead>Stock Code</TableHead>
                   <TableHead>Brand</TableHead>
                   <TableHead>Model</TableHead>
-                  <TableHead className="w-[60px]">Qty</TableHead>
-                  <TableHead className="w-[60px]">Unit</TableHead>
-                  <TableHead className="w-[100px]">Price</TableHead>
-                  <TableHead className="w-[60px]">Disc %</TableHead>
-                  <TableHead className="w-[80px]">Disc</TableHead>
-                  <TableHead className="w-[100px]">Total</TableHead>
+                  <TableHead className="w-[90px]">Qty</TableHead>
+                  <TableHead className="w-[90px]">Unit</TableHead>
+                  <TableHead className="w-[110px]">Price</TableHead>
+                  <TableHead className="w-[90px]">Disc %</TableHead>
+                  <TableHead className="w-[90px]">Disc</TableHead>
+                  <TableHead className="w-[110px]">Total</TableHead>
                   <TableHead className="w-[80px]">WH</TableHead>
                   <TableHead>Schedule</TableHead>
                   <TableHead>Description</TableHead>
@@ -254,12 +325,12 @@ export function POCreatePage() {
                       <TableCell>
                         <DataSelect items={inventoryItems} value={item.kode_Brg} onValueChange={(v) => updateLineItem(index, "kode_Brg", v)} placeholder="Item" />
                       </TableCell>
-                      <TableCell><Input value={item.brand} onChange={(e) => updateLineItem(index, "brand", e.target.value)} className="h-8 min-w-[80px]" /></TableCell>
-                      <TableCell><Input value={item.model} onChange={(e) => updateLineItem(index, "model", e.target.value)} className="h-8 min-w-[80px]" /></TableCell>
-                      <TableCell><Input type="number" min="1" value={item.jumlah} onChange={(e) => updateLineItem(index, "jumlah", Number(e.target.value))} className="h-8" /></TableCell>
-                      <TableCell><Input value={item.unit} onChange={(e) => updateLineItem(index, "unit", e.target.value)} className="h-8" /></TableCell>
-                      <TableCell><Input type="number" min="0" step="0.01" value={item.harga} onChange={(e) => updateLineItem(index, "harga", Number(e.target.value))} className="h-8" /></TableCell>
-                      <TableCell><Input type="number" min="0" max="100" value={item.discPct} onChange={(e) => updateLineItem(index, "discPct", Number(e.target.value))} className="h-8" /></TableCell>
+                      <TableCell><Input value={item.merk} onChange={(e) => updateLineItem(index, "merk", e.target.value)} className="h-8 min-w-[100px]" /></TableCell>
+                      <TableCell><Input value={item.model} onChange={(e) => updateLineItem(index, "model", e.target.value)} className="h-8 min-w-[100px]" /></TableCell>
+                      <TableCell><Input type="number" min="1" value={item.jumlah} onChange={(e) => updateLineItem(index, "jumlah", Number(e.target.value))} className="h-8 w-full min-w-[70px]" /></TableCell>
+                      <TableCell><Input value={item.satuan} onChange={(e) => updateLineItem(index, "satuan", e.target.value)} className="h-8 w-full min-w-[70px]" /></TableCell>
+                      <TableCell><Input type="number" min="0" step="0.01" value={item.harga} onChange={(e) => updateLineItem(index, "harga", Number(e.target.value))} className="h-8 w-full min-w-[90px]" /></TableCell>
+                      <TableCell><Input type="number" min="0" max="100" value={item.discPct} onChange={(e) => updateLineItem(index, "discPct", Number(e.target.value))} className="h-8 w-full min-w-[70px]" /></TableCell>
                       <TableCell className="text-right text-xs tabular-nums">{item.disc.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-right text-xs font-medium tabular-nums">{item.total.toLocaleString("id-ID")}</TableCell>
                       <TableCell>
@@ -267,7 +338,7 @@ export function POCreatePage() {
                       </TableCell>
                       <TableCell><Input type="date" value={item.schedule} onChange={(e) => updateLineItem(index, "schedule", e.target.value)} className="h-8 min-w-[120px]" /></TableCell>
                       <TableCell><Input value={item.description} onChange={(e) => updateLineItem(index, "description", e.target.value)} className="h-8 min-w-[120px]" /></TableCell>
-                      <TableCell><Input value={item.note} onChange={(e) => updateLineItem(index, "note", e.target.value)} className="h-8 min-w-[80px]" /></TableCell>
+                      <TableCell><Input value={item.note} onChange={(e) => updateLineItem(index, "note", e.target.value)} className="h-8 min-w-[100px]" /></TableCell>
                       <TableCell>
                         <Button type="button" variant="ghost" size="icon" className="size-8" onClick={() => removeLineItem(index)}>
                           <Trash2 className="size-3.5" />
@@ -319,7 +390,7 @@ export function POCreatePage() {
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Grand Total in Rupiah</span>
-                <span className="tabular-nums italic"># Zero - Rupiah #</span>
+                <span className="tabular-nums italic">{purchaseAmount > 0 ? (purchaseAmount * kurs).toLocaleString("id-ID", { style: "currency", currency: "IDR" }) : "# Zero - Rupiah #"}</span>
               </div>
             </div>
           </div>

@@ -1,10 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2, Save, Printer, FilePlus, Pencil, Trash, Eye } from "lucide-react";
+import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataSelect } from "@/components/data-select";
-import { useVendors, useDepartments } from "@/lib/use-master-data";
+import { useVendors } from "@/lib/use-master-data";
 import { api } from "@/lib/api";
 import type { GRListItem, POListItem } from "@/types";
 import { toast } from "sonner";
@@ -48,7 +47,6 @@ export function InvoicePOCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: vendors } = useVendors();
-  const { data: departments } = useDepartments();
 
   const [doku, setDoku] = useState("");
   const [tgl, setTgl] = useState(new Date().toISOString().split("T")[0]);
@@ -129,7 +127,6 @@ export function InvoicePOCreatePage() {
   };
 
   const vendorItems = vendors?.map((v) => ({ code: v.kode, label: `${v.kode} - ${v.nama}` })) ?? [];
-  const deptItems = departments?.map((d) => ({ code: d.kode, label: `${d.kode} - ${d.nama}` })) ?? [];
   const poItems = (pos ?? []).map((po) => ({ code: po.doku ?? "", label: `${po.doku} - ${po.supplierName ?? ""}` }));
   const grItems = (grs ?? []).map((gr) => ({ code: gr.doku ?? "", label: `${gr.doku} - ${gr.supplierName ?? ""}` }));
 

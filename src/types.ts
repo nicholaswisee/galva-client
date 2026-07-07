@@ -13,6 +13,15 @@ export interface Department {
 export interface InventoryItem {
   kode: string;
   nama: string;
+  merk: string | null;
+  satuan: string | null;
+  harga: number | null;
+}
+
+export interface Currency {
+  kode: string;
+  nama: string;
+  kurs: number;
 }
 
 export interface Warehouse {
@@ -45,6 +54,24 @@ export interface PRDetail {
   eTag: string;
 }
 
+export interface PODetailLine {
+  id_sub_po: number;
+  kode_Brg: string;
+  merk: string | null;
+  model: string | null;
+  satuan: string | null;
+  jumlah: number;
+  harga: number;
+  discPct: number;
+  disc: number;
+  total: number;
+  jumlahKonfirm: number;
+  kode_Gudang: string | null;
+  alias: string | null;
+  note: string | null;
+  schedule: string | null;
+}
+
 export interface POListItem {
   doku: string;
   tgl: string;
@@ -61,12 +88,60 @@ export interface PODetail {
   kode_Supplier: string | null;
   supplierName: string | null;
   kode_dept: string | null;
+  kode_Valas: string | null;
+  kurs: number;
+  nilai: number;
+  dppNilaiLain: number;
+  ppn: number;
+  ppnTunai: number;
+  diskon: number;
+  syarat: number;
+  sts: string;
+  memo: string | null;
+  eTag: string;
+  lines: PODetailLine[];
+}
+
+export interface POConfirmationLine {
+  id_sub_po: number;
+  kode_Brg: string;
+  jumlah: number;
+  harga: number;
+  total: number;
+  kode_Gudang: string | null;
+  note: string | null;
+}
+
+export interface POConfirmationListItem {
+  doku: string;
+  tgl: string;
+  doku_PO: string | null;
+  kode_Supplier: string | null;
+  supplierName: string | null;
+  nilai: number;
+  sts: string;
+  eTag: string;
+}
+
+export interface POConfirmationDetail {
+  doku: string;
+  tgl: string;
+  doku_PO: string | null;
+  kode_Supplier: string | null;
+  supplierName: string | null;
+  kode_dept: string | null;
+  kode_Valas: string | null;
+  kurs: number;
+  contactPr: string | null;
+  psd: string | null;
+  etd: string | null;
+  memo: string | null;
   nilai: number;
   ppn: number;
   diskon: number;
   sts: string;
-  memo: string | null;
   eTag: string;
+  lines: POConfirmationLine[];
 }
 
 export interface GRListItem {
@@ -102,7 +177,6 @@ export interface InvoiceListItem {
   supplierName: string | null;
   nilai: number;
   sts: string;
-  status: string;
   eTag: string;
 }
 
@@ -112,13 +186,11 @@ export interface InvoiceDetail {
   kode_Supplier: string | null;
   supplierName: string | null;
   kode_Dept: string | null;
-  kode_Bank: string | null;
   nilai: number;
   ppn: number;
   diskon: number;
   misc: number;
   sts: string;
-  status: string;
   keterangan: string | null;
   eTag: string;
 }
