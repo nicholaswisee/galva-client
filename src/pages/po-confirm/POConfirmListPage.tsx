@@ -15,26 +15,27 @@ import { StatusBadge } from "@/components/status-badge";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { usePOList, useDeletePO } from "@/api/po";
-import type { POListItem } from "@/types";
+import { usePOConfirmationList, useDeletePOConfirmation } from "@/api/po-confirm";
+import type { POConfirmationListItem } from "@/types";
 
 const PAGE_SIZE = 10;
 
-export function POListPage() {
+export function POConfirmListPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
-  const { data: pos, isLoading } = usePOList();
-  const deletePO = useDeletePO();
-  const [deleting, setDeleting] = useState<POListItem | null>(null);
+  const { data: items, isLoading } = usePOConfirmationList();
+  const deleteConfirm = useDeletePOConfirmation();
+  const [deleting, setDeleting] = useState<POConfirmationListItem | null>(null);
 
   const needle = q.trim().toLowerCase();
-  const filtered = (pos ?? []).filter((po) => {
+  const filtered = (items ?? []).filter((it) => {
     if (!needle) return true;
     return (
-      po.doku.toLowerCase().includes(needle) ||
-      (po.supplierName ?? "").toLowerCase().includes(needle) ||
-      (po.kode_Supplier ?? "").toLowerCase().includes(needle)
+      it.doku.toLowerCase().includes(needle) ||
+      (it.doku_PO ?? "").toLowerCase().includes(needle) ||
+      (it.supplierName ?? "").toLowerCase().includes(needle) ||
+      (it.kode_Supplier ?? "").toLowerCase().includes(needle)
     );
   });
 
@@ -45,13 +46,13 @@ export function POListPage() {
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Purchase Orders (PO)</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage purchase orders</p>
+          <h1 className="text-2xl font-semibold tracking-tight">PO Confirmations</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Vendor confirmations and delivery schedules</p>
         </div>
         <div className="flex items-center gap-2">
-          <SearchInput value={q} onChange={setQ} placeholder="Search POs..." />
-          <Button onClick={() => navigate({ to: "/po/new", search: { mode: "new" } })}>
-            <Plus className="mr-1.5 size-4" />New PO
+          <SearchInput value={q} onChange={setQ} placeholder="Search confirmations..." />
+          <Button onClick={() => navigate({ to: "/po-confirm/new", search: { mode: "new" } })}>
+            <Plus className="mr-1.5 size-4" />New PO Confirmation
           </Button>
         </div>
       </div>
@@ -59,9 +60,10 @@ export function POListPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Doku</TableHead>
-              <TableHead>Supplier</TableHead>
+              <TableHead>Confirm #</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>PO No.</TableHead>
+              <TableHead>Supplier</TableHead>
               <TableHead className="text-right">Nilai</TableHead>
               <TableHead className="w-[100px]">STS</TableHead>
               <TableHead className="w-[60px]" />
@@ -72,8 +74,9 @@ export function POListPage() {
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-8" /></TableCell>
@@ -81,31 +84,32 @@ export function POListPage() {
               ))
             ) : paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-sm text-muted-foreground">
-                  {needle ? "No purchase orders match your search." : "No purchase orders yet. Click \"New PO\" to create one."}
+                <TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">
+                  {needle ? "No confirmations match your search." : "No PO confirmations yet. Click \"New PO Confirmation\" to create one."}
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((po) => (
+              paginated.map((it) => (
                 <TableRow
-                  key={po.doku}
+                  key={it.doku}
                   className="cursor-pointer"
-                  onClick={() => navigate({ to: "/po/$id", params: { id: po.doku }, search: { mode: "edit" } })}
+                  onClick={() => navigate({ to: "/po-confirm/$id", params: { id: it.doku }, search: { mode: "edit" } })}
                 >
-                  <TableCell className="font-medium">{po.doku}</TableCell>
-                  <TableCell className="text-sm">{po.supplierName ?? po.kode_Supplier ?? "-"}</TableCell>
-                  <TableCell className="text-sm">{po.tgl?.split("T")[0] ?? "-"}</TableCell>
+                  <TableCell className="font-medium">{it.doku}</TableCell>
+                  <TableCell className="text-sm">{it.tgl?.split("T")[0] ?? "-"}</TableCell>
+                  <TableCell className="text-sm">{it.doku_PO ?? "-"}</TableCell>
+                  <TableCell className="text-sm">{it.supplierName ?? it.kode_Supplier ?? "-"}</TableCell>
                   <TableCell className="text-right text-sm tabular-nums">
-                    {po.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }) ?? "-"}
+                    {it.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }) ?? "-"}
                   </TableCell>
-                  <TableCell><StatusBadge status={po.sts ?? "0"} /></TableCell>
+                  <TableCell><StatusBadge status={it.sts ?? "0"} /></TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="size-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => setDeleting(po)}
-                      aria-label={`Delete ${po.doku}`}
+                      onClick={() => setDeleting(it)}
+                      aria-label={`Delete ${it.doku}`}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -120,16 +124,16 @@ export function POListPage() {
       <ConfirmDialog
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title="Delete purchase order?"
+        title="Delete PO confirmation?"
         description={`This will permanently remove ${deleting?.doku ?? ""}. This action cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={() => {
           if (!deleting) return;
           const target = deleting;
           setDeleting(null);
-          deletePO.mutate({ doku: target.doku, eTag: target.eTag });
+          deleteConfirm.mutate({ doku: target.doku, eTag: target.eTag });
         }}
-        isLoading={deletePO.isPending}
+        isLoading={deleteConfirm.isPending}
       />
     </div>
   );

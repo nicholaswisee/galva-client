@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Plus,
     Trash2,
@@ -26,10 +26,11 @@ import {
 import { DataSelect } from "@/components/data-select";
 import { useVendors, useInventory, useWarehouses } from "@/lib/use-master-data";
 import { api } from "@/lib/api";
-import type { POListItem } from "@/types";
+import { usePOConfirmationList, usePOConfirmationDetail } from "@/api/po-confirm";
 import { toast } from "sonner";
 
 interface GRLineItem {
+    id_sub_po_confirmation: number;
     kode_Brg: string;
     model: string;
     jumlah: number;
@@ -37,7 +38,7 @@ interface GRLineItem {
     harga: number;
     discPct: number;
     disc: number;
-    total: number;
+    nilai: number;
     description: string;
     kode_Gudang: string;
     information: string;
@@ -52,6 +53,7 @@ export function GRCreatePage() {
 
     const [doku, setDoku] = useState("");
     const [tgl, setTgl] = useState(new Date().toISOString().split("T")[0]);
+    const [doku_PCF, setDoku_PCF] = useState("");
     const [doku_PO, setDoku_PO] = useState("");
     const [tgl_PO, setTgl_PO] = useState("");
     const [suratJalan, setSuratJalan] = useState("");
@@ -75,21 +77,72 @@ export function GRCreatePage() {
     const [purchaseAmount, setPurchaseAmount] = useState(0);
     const [ppnPct, setPpnPct] = useState(10);
 
-    const { data: pos } = useQuery<POListItem[]>({
-        queryKey: ["purchase-orders"],
-        queryFn: async () => {
-            const res = await api.get("/api/purchase-orders");
-            if (!res.ok) throw new Error("Failed");
-            return res.json();
-        },
-    });
+    const { data: pcfList } = usePOConfirmationList();
+    const { data: pcfDetail } = usePOConfirmationDetail(doku_PCF || null);
 
-    const confirmedPOItems = (pos ?? [])
-        .filter((po) => po.sts === "1")
-        .map((po) => ({
-            code: po.doku ?? "",
-            label: `${po.doku} - ${po.supplierName ?? po.kode_Supplier ?? ""}`,
+    const openPCFItems = (pcfList ?? [])
+        .filter((pcf) => pcf.sts !== "9")
+        .map((pcf) => ({
+            code: pcf.doku ?? "",
+            label: `${pcf.doku} - ${pcf.supplierName ?? pcf.kode_Supplier ?? ""} (PO ${pcf.doku_PO ?? ""})`,
         }));
+
+    const recalcTotals = useCallback((items: GRLineItem[]) => {
+        const gross = items.reduce((s, i) => s + i.jumlah * i.harga, 0);
+        const disc = items.reduce((s, i) => s + i.disc, 0);
+        const net = gross - disc;
+        const dpp = net;
+        const vatAmt = dpp * (ppnPct / 100);
+        const total = dpp + vatAmt;
+        setGrossAmount(gross);
+        setDiscAmount(disc);
+        setNetAmount(net);
+        setDppNilaiLain(dpp);
+        setVat(vatAmt);
+        setPurchaseAmount(total);
+    }, [ppnPct]);
+
+    // Auto-fill header and line items when a PO Confirmation is selected.
+    const loadedPcfDoku = useRef<string>("");
+    useEffect(() => {
+        if (!pcfDetail?.data) {
+            if (doku_PCF) return;
+            loadedPcfDoku.current = "";
+            queueMicrotask(() => {
+                setDoku_PO("");
+                setTgl_PO("");
+                setKode_Supplier("");
+                setLineItems([]);
+            });
+            return;
+        }
+
+        if (loadedPcfDoku.current === pcfDetail.data.doku) return;
+        loadedPcfDoku.current = pcfDetail.data.doku;
+
+        const pcf = pcfDetail.data;
+        const mapped = pcf.lines.map((line) => ({
+            id_sub_po_confirmation: line.id_sub_po_confirmation,
+            kode_Brg: line.kode_Brg,
+            model: "",
+            jumlah: line.jumlah,
+            serialNo: "",
+            harga: line.harga,
+            discPct: 0,
+            disc: 0,
+            nilai: line.jumlah * line.harga,
+            description: line.note ?? "",
+            kode_Gudang: line.kode_Gudang ?? "",
+            information: "",
+        }));
+        queueMicrotask(() => {
+            setDoku_PO(pcf.doku_PO ?? "");
+            setKode_Supplier(pcf.kode_Supplier ?? "");
+            setTgl_PO(pcf.tgl ? pcf.tgl.split("T")[0] : "");
+            setLineItems(mapped);
+            recalcTotals(mapped);
+        });
+    }, [pcfDetail?.data, doku_PCF, recalcTotals]);
 
     const createGR = useMutation({
         mutationFn: async (payload: unknown) => {
@@ -100,11 +153,11 @@ export function GRCreatePage() {
                     err?.detail ?? err?.error ?? "Failed to create GR",
                 );
             }
-            return res.json();
+            return res.json() as Promise<{ doku: string }>;
         },
-        onSuccess: () => {
+        onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
-            toast.success("Goods receipt created successfully");
+            toast.success(`Goods receipt ${result.doku} created successfully`);
             navigate({ to: "/gr" });
         },
         onError: (error) => {
@@ -116,6 +169,7 @@ export function GRCreatePage() {
         setLineItems([
             ...lineItems,
             {
+                id_sub_po_confirmation: 0,
                 kode_Brg: "",
                 model: "",
                 jumlah: 1,
@@ -123,7 +177,7 @@ export function GRCreatePage() {
                 harga: 0,
                 discPct: 0,
                 disc: 0,
-                total: 0,
+                nilai: 0,
                 description: "",
                 kode_Gudang: "",
                 information: "",
@@ -144,32 +198,40 @@ export function GRCreatePage() {
             const gross = item.jumlah * item.harga;
             const disc = gross * (item.discPct / 100);
             item.disc = disc;
-            item.total = gross - disc;
+            item.nilai = gross - disc;
         }
         setLineItems(updated);
         recalcTotals(updated);
     };
 
-    const recalcTotals = (items: GRLineItem[]) => {
-        const gross = items.reduce((s, i) => s + i.jumlah * i.harga, 0);
-        const disc = items.reduce((s, i) => s + i.disc, 0);
-        const net = gross - disc;
-        const dpp = net;
-        const vatAmt = dpp * (ppnPct / 100);
-        const total = dpp + vatAmt;
-        setGrossAmount(gross);
-        setDiscAmount(disc);
-        setNetAmount(net);
-        setDppNilaiLain(dpp);
-        setVat(vatAmt);
-        setPurchaseAmount(total);
-    };
-
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
+        if (!doku_PCF) {
+            toast.error("PO Confirmation is required");
+            return;
+        }
+        if (!doku_PO) {
+            toast.error("PO reference is required");
+            return;
+        }
+        if (lineItems.length === 0) {
+            toast.error("Add at least one line item");
+            return;
+        }
+
+        const invalidLine = lineItems.find(
+            (item) => !item.kode_Brg || item.jumlah <= 0 || !item.id_sub_po_confirmation,
+        );
+        if (invalidLine) {
+            toast.error("Each line must have a stock code, a positive quantity, and a PO Confirmation line");
+            return;
+        }
+
         createGR.mutate({
             doku: doku || null,
             doku_PO,
+            doku_PCF,
             tgl: new Date(tgl).toISOString(),
             kode_Supplier: kode_Supplier || null,
             suratJalan: suratJalan || null,
@@ -179,6 +241,7 @@ export function GRCreatePage() {
                 jumlah: item.jumlah,
                 harga: item.harga,
                 kode_Gudang: item.kode_Gudang || null,
+                id_sub_po_confirmation: item.id_sub_po_confirmation,
             })),
         });
     };
@@ -312,17 +375,20 @@ export function GRCreatePage() {
                                 PO Confirm
                             </label>
                             <DataSelect
-                                items={confirmedPOItems}
+                                items={openPCFItems}
+                                value={doku_PCF}
+                                onValueChange={setDoku_PCF}
+                                placeholder="Select PO Confirmation"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium">
+                                PO Ref
+                            </label>
+                            <Input
                                 value={doku_PO}
-                                onValueChange={(v) => {
-                                    setDoku_PO(v);
-                                    const po = pos?.find((p) => p.doku === v);
-                                    if (po?.kode_Supplier)
-                                        setKode_Supplier(po.kode_Supplier);
-                                    if (po?.tgl)
-                                        setTgl_PO(po.tgl.split("T")[0]);
-                                }}
-                                placeholder="Select PO"
+                                readOnly
+                                placeholder="Auto-filled from PO Confirm"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -443,7 +509,7 @@ export function GRCreatePage() {
                             variant="outline"
                             size="sm"
                             onClick={addLineItem}
-                            disabled={!doku_PO}
+                            disabled={!doku_PCF}
                         >
                             <Plus className="mr-1.5 size-3.5" />
                             Add Item
@@ -491,9 +557,9 @@ export function GRCreatePage() {
                                             colSpan={13}
                                             className="h-24 text-center text-sm text-muted-foreground"
                                         >
-                                            {doku_PO
+                                            {doku_PCF
                                                 ? 'Click "Add Item" to add received items.'
-                                                : "Select a PO first."}
+                                                : "Select a PO Confirmation first."}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -601,7 +667,7 @@ export function GRCreatePage() {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right text-xs font-medium tabular-nums">
-                                                {item.total.toLocaleString(
+                                                {item.nilai.toLocaleString(
                                                     "id-ID",
                                                 )}
                                             </TableCell>

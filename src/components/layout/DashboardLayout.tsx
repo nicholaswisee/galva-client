@@ -215,7 +215,10 @@ export function DashboardLayout() {
         )}
       >
         <div className="flex h-14 items-center justify-between border-b px-4">
-          <span className="text-base font-semibold tracking-tight">Galva ERP</span>
+          <div className="flex items-center gap-2">
+            <img src="/galva.png" alt="Galva ERP" className="h-6 w-auto" />
+            <span className="text-base font-semibold tracking-tight">Galva ERP</span>
+          </div>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="size-4" />
           </button>

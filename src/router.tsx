@@ -14,15 +14,19 @@ import { PRListPage } from "./pages/pr/PRListPage";
 import { PRCreatePage } from "./pages/pr/PRCreatePage";
 import { PRDetailPage } from "./pages/pr/PRDetailPage";
 import { POListPage } from "./pages/po/POListPage";
-import { POCreatePage } from "./pages/po/POCreatePage";
-import { PODetailPage } from "./pages/po/PODetailPage";
+import { PONewPage } from "./pages/po/PONewPage";
+import { POEditPage } from "./pages/po/POEditPage";
+import { POPrintPage } from "./pages/po/POPrintPage";
 import { GRListPage } from "./pages/gr/GRListPage";
 import { GRCreatePage } from "./pages/gr/GRCreatePage";
 import { GRDetailPage } from "./pages/gr/GRDetailPage";
 import { InvoiceListPage } from "./pages/invoice/InvoiceListPage";
 import { InvoiceCreatePage } from "./pages/invoice/InvoiceCreatePage";
 import { InvoiceDetailPage } from "./pages/invoice/InvoiceDetailPage";
-import { POConfirmPage } from "./pages/po-confirm/POConfirmPage";
+import { POConfirmListPage } from "./pages/po-confirm/POConfirmListPage";
+import { POConfirmNewPage } from "./pages/po-confirm/POConfirmNewPage";
+import { POConfirmEditPage } from "./pages/po-confirm/POConfirmEditPage";
+import { POConfirmPrintPage } from "./pages/po-confirm/POConfirmPrintPage";
 import { InvoicePOCreatePage } from "./pages/invoice-po/InvoicePOCreatePage";
 import { VoucherAPCreatePage } from "./pages/voucher/VoucherAPCreatePage";
 import { MasterDataPage } from "./pages/MasterDataPage";
@@ -101,13 +105,25 @@ const poListRoute = createRoute({
 const poCreateRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/po/new",
-  component: POCreatePage,
+  component: PONewPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "new" ? "new" : "new",
+  }),
 });
 
 const poDetailRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/po/$id",
-  component: PODetailPage,
+  component: POEditPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "edit" || search.mode === "print" ? search.mode : "edit",
+  }),
+});
+
+const poPrintRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/po/$id/print",
+  component: POPrintPage,
 });
 
 const grListRoute = createRoute({
@@ -149,7 +165,28 @@ const invoiceDetailRoute = createRoute({
 const poConfirmRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/po-confirm",
-  component: POConfirmPage,
+  component: POConfirmListPage,
+});
+
+const poConfirmNewRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/po-confirm/new",
+  component: POConfirmNewPage,
+});
+
+const poConfirmDetailRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/po-confirm/$id",
+  component: POConfirmEditPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "edit" || search.mode === "print" ? search.mode : "edit",
+  }),
+});
+
+const poConfirmPrintRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/po-confirm/$id/print",
+  component: POConfirmPrintPage,
 });
 
 const invoicePOCreateRoute = createRoute({
@@ -210,6 +247,7 @@ const routeTree = rootRoute.addChildren([
     poListRoute,
     poCreateRoute,
     poDetailRoute,
+    poPrintRoute,
     grListRoute,
     grCreateRoute,
     grDetailRoute,
@@ -217,6 +255,9 @@ const routeTree = rootRoute.addChildren([
     invoiceCreateRoute,
     invoiceDetailRoute,
     poConfirmRoute,
+    poConfirmNewRoute,
+    poConfirmDetailRoute,
+    poConfirmPrintRoute,
     invoicePOCreateRoute,
     voucherAPCreateRoute,
     masterDataRoute,

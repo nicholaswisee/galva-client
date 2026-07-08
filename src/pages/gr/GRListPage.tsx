@@ -50,6 +50,7 @@ export function GRListPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Doku</TableHead>
+              <TableHead>PO Confirm</TableHead>
               <TableHead>PO Ref</TableHead>
               <TableHead>Supplier</TableHead>
               <TableHead>Date</TableHead>
@@ -64,6 +65,7 @@ export function GRListPage() {
                   <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
@@ -71,7 +73,7 @@ export function GRListPage() {
               ))
             ) : !paginated || paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">
                   No goods receipts yet. Click "New GR" to create one.
                 </TableCell>
               </TableRow>
@@ -79,6 +81,7 @@ export function GRListPage() {
               paginated.map((gr) => (
                 <TableRow key={gr.doku} className="cursor-pointer" onClick={() => navigate({ to: "/gr/$id", params: { id: gr.doku } })}>
                   <TableCell className="font-medium">{gr.doku}</TableCell>
+                  <TableCell className="text-sm">{gr.doku_PCF ?? "-"}</TableCell>
                   <TableCell className="text-sm">{gr.doku_PO ?? "-"}</TableCell>
                   <TableCell className="text-sm">{gr.supplierName ?? gr.kode_Supplier ?? "-"}</TableCell>
                   <TableCell className="text-sm">{gr.tgl?.split("T")[0] ?? "-"}</TableCell>

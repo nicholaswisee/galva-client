@@ -4,6 +4,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { api } from "@/lib/api";
 import type { GRDetail } from "@/types";
 
@@ -59,6 +67,10 @@ export function GRDetailPage() {
                 <div className="text-sm font-medium">{gr.tgl?.split("T")[0] ?? "-"}</div>
               </div>
               <div>
+                <div className="text-xs text-muted-foreground">PO Confirm</div>
+                <div className="text-sm font-medium">{gr.doku_PCF ?? "-"}</div>
+              </div>
+              <div>
                 <div className="text-xs text-muted-foreground">PO Reference</div>
                 <div className="text-sm font-medium">{gr.doku_PO ?? "-"}</div>
               </div>
@@ -89,6 +101,44 @@ export function GRDetailPage() {
                 <div className="mt-1 text-sm">{gr.memo}</div>
               </div>
             )}
+          </div>
+
+          <div className="rounded-md border bg-card p-6">
+            <h2 className="mb-4 text-base font-semibold">Line Items</h2>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Stock Code</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>WH</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(gr.lineItems ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                        No line items.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    gr.lineItems!.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="text-sm">{item.kode_Brg}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">{item.jumlah.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">{item.harga.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">{item.nilai.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-sm">{item.kode_Gudang ?? "-"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       )}

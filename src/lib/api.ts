@@ -75,10 +75,22 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     });
   },
-  put: (path: string, body?: unknown) =>
-    apiFetch(path, {
+  put: (path: string, body?: unknown, options?: { ifMatch?: string }) => {
+    const headers = new Headers();
+    if (options?.ifMatch) {
+      headers.set("If-Match", `"${options.ifMatch}"`);
+    }
+    return apiFetch(path, {
       method: "PUT",
+      headers,
       body: body ? JSON.stringify(body) : undefined,
-    }),
-  del: (path: string) => apiFetch(path, { method: "DELETE" }),
+    });
+  },
+  del: (path: string, options?: { ifMatch?: string }) => {
+    const headers = new Headers();
+    if (options?.ifMatch) {
+      headers.set("If-Match", `"${options.ifMatch}"`);
+    }
+    return apiFetch(path, { method: "DELETE", headers });
+  },
 };

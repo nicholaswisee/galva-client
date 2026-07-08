@@ -37,7 +37,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-xl font-semibold tracking-tight">Galva ERP</h1>
+          <img src="/galva.png" alt="Galva ERP" className="mx-auto h-12 w-auto" />
+          <h1 className="mt-3 text-xl font-semibold tracking-tight">Galva ERP</h1>
           <p className="mt-1 text-sm text-muted-foreground">Account Payable</p>
         </div>
         <form

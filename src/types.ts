@@ -103,6 +103,7 @@ export interface PODetail {
 }
 
 export interface POConfirmationLine {
+  id_sub_po_confirmation: number;
   id_sub_po: number;
   kode_Brg: string;
   jumlah: number;
@@ -144,10 +145,20 @@ export interface POConfirmationDetail {
   lines: POConfirmationLine[];
 }
 
+export interface GRLineItem {
+  kode_Brg: string;
+  jumlah: number;
+  harga: number;
+  nilai: number;
+  kode_Gudang: string | null;
+  id_sub_po_confirmation: number;
+}
+
 export interface GRListItem {
   doku: string;
   tgl: string;
   doku_PO: string | null;
+  doku_PCF: string | null;
   kode_Supplier: string | null;
   supplierName: string | null;
   nilai: number;
@@ -160,6 +171,7 @@ export interface GRDetail {
   doku: string;
   tgl: string;
   doku_PO: string | null;
+  doku_PCF: string | null;
   kode_Supplier: string | null;
   supplierName: string | null;
   suratJalan: string | null;
@@ -168,6 +180,7 @@ export interface GRDetail {
   status: string;
   memo: string | null;
   eTag: string;
+  lineItems: GRLineItem[];
 }
 
 export interface InvoiceListItem {
