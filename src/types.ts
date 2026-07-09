@@ -174,6 +174,8 @@ export interface GRDetail {
   doku_PCF: string | null;
   kode_Supplier: string | null;
   supplierName: string | null;
+  kode_Valas: string | null;
+  kurs: number | null;
   suratJalan: string | null;
   nilai: number;
   sts: string;

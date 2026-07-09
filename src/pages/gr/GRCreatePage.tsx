@@ -183,6 +183,8 @@ export function GRCreatePage() {
         queueMicrotask(() => {
             setDoku_PO(pcf.doku_PO ?? "");
             setKode_Supplier(pcf.kode_Supplier ?? "");
+            setKode_Valas(pcf.kode_Valas ?? "Rp.");
+            setKurs(pcf.kurs ?? 1.0);
             setTgl_PO(pcf.tgl ? pcf.tgl.split("T")[0] : "");
             setLineItems(mapped);
             recalcTotals(mapped);
@@ -314,6 +316,8 @@ export function GRCreatePage() {
             doku_PCF,
             tgl: new Date(tgl).toISOString(),
             kode_Supplier: kode_Supplier || null,
+            kode_Valas: kode_Valas === "Rp." ? null : kode_Valas,
+            kurs: kurs === 1.0 ? null : kurs,
             suratJalan: suratJalan || null,
             memo: memo || null,
             lineItems: lineItems.map((item) => ({
@@ -591,8 +595,17 @@ export function GRCreatePage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium">
+                            <label className="flex items-center gap-1.5 text-xs font-medium">
                                 Currency / Rate
+                                {doku_PCF && (
+                                    <span
+                                        title="Auto-filled from PO Confirmation"
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-normal text-muted-foreground"
+                                    >
+                                        <Lock className="size-3" />
+                                        auto
+                                    </span>
+                                )}
                             </label>
                             <div className="flex items-center gap-2">
                                 <Input
@@ -601,6 +614,7 @@ export function GRCreatePage() {
                                         setKode_Valas(e.target.value)
                                     }
                                     className="w-20"
+                                    disabled={!!doku_PCF}
                                 />
                                 <Input
                                     type="number"
@@ -610,6 +624,7 @@ export function GRCreatePage() {
                                         setKurs(Number(e.target.value))
                                     }
                                     className="w-24"
+                                    disabled={!!doku_PCF}
                                 />
                             </div>
                         </div>
@@ -655,13 +670,11 @@ export function GRCreatePage() {
                         >
                             <Info className="mt-0.5 size-3.5 shrink-0" />
                             <span>
-                                Select a PO Confirmation above to load
-                                items.{" "}
+                                Select a PO Confirmation above to load items.{" "}
                                 <span className="font-medium text-foreground">
-                                    Item details, PO Ref, PO Date, and Vendor
+                                    Item details, PO Ref, PO Date, Vendor, and Currency/Rate
                                 </span>{" "}
-                                will auto-fill once a confirmation is
-                                chosen.
+                                will auto-fill once a confirmation is chosen.
                             </span>
                         </div>
                     )}
@@ -728,15 +741,13 @@ export function GRCreatePage() {
                                                     <span className="font-medium text-foreground">
                                                         Add Item
                                                     </span>{" "}
-                                                    above to add received
-                                                    items.
+                                                    above to add received items.
                                                 </>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1.5">
                                                     <Lock className="size-3.5" />
                                                     Select a PO Confirmation
-                                                    above to unlock this
-                                                    table.
+                                                    above to unlock this table.
                                                 </span>
                                             )}
                                             {fieldErrors.header.lineItems && (
