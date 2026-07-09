@@ -12,6 +12,7 @@ interface DataSelectProps<T extends { code: string; label: string }> {
   onValueChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  error?: string;
 }
 
 export function DataSelect<T extends { code: string; label: string }>({
@@ -20,10 +21,14 @@ export function DataSelect<T extends { code: string; label: string }>({
   onValueChange,
   placeholder = "Select...",
   disabled,
+  error,
 }: DataSelectProps<T>) {
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className="w-full">
+      <SelectTrigger
+        className="w-full"
+        aria-invalid={error ? true : undefined}
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

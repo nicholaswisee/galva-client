@@ -1,4 +1,10 @@
-import { useState, type FormEvent, useEffect, useRef, useCallback } from "react";
+import {
+    useState,
+    type FormEvent,
+    useEffect,
+    useRef,
+    useCallback,
+} from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,6 +16,8 @@ import {
     Pencil,
     Trash,
     RefreshCw,
+    Info,
+    Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +34,10 @@ import {
 import { DataSelect } from "@/components/data-select";
 import { useVendors, useInventory, useWarehouses } from "@/lib/use-master-data";
 import { api } from "@/lib/api";
-import { usePOConfirmationList, usePOConfirmationDetail } from "@/api/po-confirm";
+import {
+    usePOConfirmationList,
+    usePOConfirmationDetail,
+} from "@/api/po-confirm";
 import { toast } from "sonner";
 
 interface GRLineItem {
@@ -42,6 +53,23 @@ interface GRLineItem {
     description: string;
     kode_Gudang: string;
     information: string;
+}
+
+interface HeaderErrors {
+    [key: string]: string;
+}
+
+interface LineItemErrors {
+    [index: number]: Partial<Record<keyof GRLineItem, string>>;
+}
+
+function FieldError({ message }: { message?: string }) {
+    if (!message) return null;
+    return (
+        <p className="mt-1 text-[11px] leading-tight text-destructive">
+            {message}
+        </p>
+    );
 }
 
 export function GRCreatePage() {
@@ -68,6 +96,10 @@ export function GRCreatePage() {
     const [memo, setMemo] = useState("");
     const [forwardAgent, setForwardAgent] = useState("");
     const [lineItems, setLineItems] = useState<GRLineItem[]>([]);
+    const [fieldErrors, setFieldErrors] = useState<{
+        header: HeaderErrors;
+        lines: LineItemErrors;
+    }>({ header: {}, lines: {} });
 
     const [grossAmount, setGrossAmount] = useState(0);
     const [discAmount, setDiscAmount] = useState(0);
@@ -87,20 +119,23 @@ export function GRCreatePage() {
             label: `${pcf.doku} - ${pcf.supplierName ?? pcf.kode_Supplier ?? ""} (PO ${pcf.doku_PO ?? ""})`,
         }));
 
-    const recalcTotals = useCallback((items: GRLineItem[]) => {
-        const gross = items.reduce((s, i) => s + i.jumlah * i.harga, 0);
-        const disc = items.reduce((s, i) => s + i.disc, 0);
-        const net = gross - disc;
-        const dpp = net;
-        const vatAmt = dpp * (ppnPct / 100);
-        const total = dpp + vatAmt;
-        setGrossAmount(gross);
-        setDiscAmount(disc);
-        setNetAmount(net);
-        setDppNilaiLain(dpp);
-        setVat(vatAmt);
-        setPurchaseAmount(total);
-    }, [ppnPct]);
+    const recalcTotals = useCallback(
+        (items: GRLineItem[]) => {
+            const gross = items.reduce((s, i) => s + i.jumlah * i.harga, 0);
+            const disc = items.reduce((s, i) => s + i.disc, 0);
+            const net = gross - disc;
+            const dpp = net;
+            const vatAmt = dpp * (ppnPct / 100);
+            const total = dpp + vatAmt;
+            setGrossAmount(gross);
+            setDiscAmount(disc);
+            setNetAmount(net);
+            setDppNilaiLain(dpp);
+            setVat(vatAmt);
+            setPurchaseAmount(total);
+        },
+        [ppnPct],
+    );
 
     // Auto-fill header and line items when a PO Confirmation is selected.
     const loadedPcfDoku = useRef<string>("");
@@ -113,6 +148,16 @@ export function GRCreatePage() {
                 setTgl_PO("");
                 setKode_Supplier("");
                 setLineItems([]);
+                setFieldErrors((prev) => ({
+                    ...prev,
+                    header: {
+                        ...prev.header,
+                        doku_PCF: "",
+                        doku_PO: "",
+                        lineItems: "",
+                    },
+                    lines: {},
+                }));
             });
             return;
         }
@@ -141,8 +186,18 @@ export function GRCreatePage() {
             setTgl_PO(pcf.tgl ? pcf.tgl.split("T")[0] : "");
             setLineItems(mapped);
             recalcTotals(mapped);
+            setFieldErrors((prev) => ({
+                ...prev,
+                header: {
+                    ...prev.header,
+                    doku_PCF: "",
+                    doku_PO: "",
+                    lineItems: "",
+                },
+                lines: {},
+            }));
         });
-    }, [pcfDetail?.data, doku_PCF, recalcTotals]);
+    }, [pcfDetail?.data, doku_PCF, recalcTotals, setFieldErrors]);
 
     const createGR = useMutation({
         mutationFn: async (payload: unknown) => {
@@ -165,7 +220,7 @@ export function GRCreatePage() {
         },
     });
 
-    const addLineItem = () =>
+    const addLineItem = () => {
         setLineItems([
             ...lineItems,
             {
@@ -183,6 +238,11 @@ export function GRCreatePage() {
                 information: "",
             },
         ]);
+        setFieldErrors((prev) => ({
+            ...prev,
+            header: { ...prev.header, lineItems: "" },
+        }));
+    };
     const removeLineItem = (index: number) =>
         setLineItems(lineItems.filter((_, i) => i !== index));
 
@@ -201,30 +261,50 @@ export function GRCreatePage() {
             item.nilai = gross - disc;
         }
         setLineItems(updated);
+        setFieldErrors((prev) => {
+            const lines = { ...prev.lines };
+            if (lines[index]) {
+                const next = { ...lines[index] };
+                delete next[field];
+                if (Object.keys(next).length === 0) delete lines[index];
+                else lines[index] = next;
+            }
+            return { ...prev, lines };
+        });
         recalcTotals(updated);
     };
+
+    const validate = useCallback((): boolean => {
+        const header: HeaderErrors = {};
+        const lines: LineItemErrors = {};
+
+        if (!doku_PCF) header.doku_PCF = "PO Confirmation is required";
+        if (!doku_PO) header.doku_PO = "PO reference is required";
+        if (lineItems.length === 0) {
+            header.lineItems = "Add at least one line item";
+        }
+
+        lineItems.forEach((item, index) => {
+            const lineError: Partial<Record<keyof GRLineItem, string>> = {};
+            if (!item.kode_Brg) lineError.kode_Brg = "Stock code is required";
+            if (item.jumlah <= 0)
+                lineError.jumlah = "Quantity must be greater than 0";
+            if (!item.id_sub_po_confirmation)
+                lineError.id_sub_po_confirmation = "PO line is required";
+            if (Object.keys(lineError).length > 0) lines[index] = lineError;
+        });
+
+        setFieldErrors({ header, lines });
+        return (
+            Object.keys(header).length === 0 && Object.keys(lines).length === 0
+        );
+    }, [doku_PCF, doku_PO, lineItems]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        if (!doku_PCF) {
-            toast.error("PO Confirmation is required");
-            return;
-        }
-        if (!doku_PO) {
-            toast.error("PO reference is required");
-            return;
-        }
-        if (lineItems.length === 0) {
-            toast.error("Add at least one line item");
-            return;
-        }
-
-        const invalidLine = lineItems.find(
-            (item) => !item.kode_Brg || item.jumlah <= 0 || !item.id_sub_po_confirmation,
-        );
-        if (invalidLine) {
-            toast.error("Each line must have a stock code, a positive quantity, and a PO Confirmation line");
+        if (!validate()) {
+            toast.error("Please fix the highlighted errors before saving.");
             return;
         }
 
@@ -368,7 +448,9 @@ export function GRCreatePage() {
                                 value={tgl}
                                 onChange={(e) => setTgl(e.target.value)}
                                 required
+                                aria-invalid={!!fieldErrors.header.tgl}
                             />
+                            <FieldError message={fieldErrors.header.tgl} />
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium">
@@ -377,28 +459,64 @@ export function GRCreatePage() {
                             <DataSelect
                                 items={openPCFItems}
                                 value={doku_PCF}
-                                onValueChange={setDoku_PCF}
+                                onValueChange={(v) => {
+                                    setDoku_PCF(v);
+                                    setFieldErrors((prev) => ({
+                                        ...prev,
+                                        header: {
+                                            ...prev.header,
+                                            doku_PCF: "",
+                                        },
+                                    }));
+                                }}
                                 placeholder="Select PO Confirmation"
+                                error={fieldErrors.header.doku_PCF}
                             />
+                            <FieldError message={fieldErrors.header.doku_PCF} />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium">
+                            <label className="flex items-center gap-1.5 text-xs font-medium">
                                 PO Ref
+                                <span
+                                    title="Auto-filled from PO Confirmation"
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-normal text-muted-foreground"
+                                >
+                                    <Lock className="size-3" />
+                                    auto
+                                </span>
                             </label>
                             <Input
                                 value={doku_PO}
                                 readOnly
                                 placeholder="Auto-filled from PO Confirm"
+                                aria-invalid={!!fieldErrors.header.doku_PO}
+                                className="bg-muted/40 cursor-not-allowed"
                             />
+                            <FieldError message={fieldErrors.header.doku_PO} />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium">
+                            <label className="flex items-center gap-1.5 text-xs font-medium">
                                 PO Date
+                                {doku_PCF && (
+                                    <span
+                                        title="Auto-filled from PO Confirmation"
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-normal text-muted-foreground"
+                                    >
+                                        <Lock className="size-3" />
+                                        auto
+                                    </span>
+                                )}
                             </label>
                             <Input
                                 type="date"
                                 value={tgl_PO}
                                 onChange={(e) => setTgl_PO(e.target.value)}
+                                disabled={!!doku_PCF}
+                                className={
+                                    doku_PCF
+                                        ? "bg-muted/40 cursor-not-allowed"
+                                        : undefined
+                                }
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -452,14 +570,24 @@ export function GRCreatePage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium">
+                            <label className="flex items-center gap-1.5 text-xs font-medium">
                                 Vendor
+                                {doku_PCF && (
+                                    <span
+                                        title="Auto-filled from PO Confirmation"
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-normal text-muted-foreground"
+                                    >
+                                        <Lock className="size-3" />
+                                        auto
+                                    </span>
+                                )}
                             </label>
                             <DataSelect
                                 items={vendorItems}
                                 value={kode_Supplier}
                                 onValueChange={setKode_Supplier}
                                 placeholder="Select vendor"
+                                disabled={!!doku_PCF}
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -510,43 +638,80 @@ export function GRCreatePage() {
                             size="sm"
                             onClick={addLineItem}
                             disabled={!doku_PCF}
+                            title={
+                                doku_PCF
+                                    ? "Add a new line item"
+                                    : "Select a PO Confirmation above first"
+                            }
                         >
                             <Plus className="mr-1.5 size-3.5" />
                             Add Item
                         </Button>
                     </div>
-                    <div className="overflow-x-auto">
-                        <Table>
+                    {!doku_PCF && (
+                        <div
+                            role="status"
+                            className="flex items-start gap-2 border-b bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+                        >
+                            <Info className="mt-0.5 size-3.5 shrink-0" />
+                            <span>
+                                Select a PO Confirmation above to load
+                                items.{" "}
+                                <span className="font-medium text-foreground">
+                                    Item details, PO Ref, PO Date, and Vendor
+                                </span>{" "}
+                                will auto-fill once a confirmation is
+                                chosen.
+                            </span>
+                        </div>
+                    )}
+                    <div
+                        className={
+                            doku_PCF
+                                ? "overflow-x-auto"
+                                : "overflow-x-auto opacity-60 pointer-events-none select-none"
+                        }
+                        aria-disabled={!doku_PCF}
+                    >
+                        <Table className="table-fixed">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[40px]">
                                         #
                                     </TableHead>
-                                    <TableHead>Stock Code</TableHead>
-                                    <TableHead>Model</TableHead>
-                                    <TableHead className="w-[60px]">
+                                    <TableHead className="w-[160px]">
+                                        Stock Code
+                                    </TableHead>
+                                    <TableHead className="w-[80px]">
+                                        Model
+                                    </TableHead>
+                                    <TableHead className="w-[95px]">
                                         Qty
                                     </TableHead>
-                                    <TableHead className="w-[100px]">
+                                    <TableHead className="w-[90px]">
                                         Serial No.
                                     </TableHead>
-                                    <TableHead className="w-[100px]">
+                                    <TableHead className="w-[105px]">
                                         Price
                                     </TableHead>
-                                    <TableHead className="w-[60px]">
+                                    <TableHead className="w-[85px]">
                                         Disc %
                                     </TableHead>
                                     <TableHead className="w-[80px]">
                                         Disc
                                     </TableHead>
-                                    <TableHead className="w-[100px]">
+                                    <TableHead className="w-[105px]">
                                         Total
                                     </TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="w-[80px]">
+                                    <TableHead className="w-[110px]">
+                                        Description
+                                    </TableHead>
+                                    <TableHead className="w-[120px]">
                                         WH
                                     </TableHead>
-                                    <TableHead>Information</TableHead>
+                                    <TableHead className="w-[85px]">
+                                        Information
+                                    </TableHead>
                                     <TableHead className="w-[40px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -555,177 +720,276 @@ export function GRCreatePage() {
                                     <TableRow>
                                         <TableCell
                                             colSpan={13}
-                                            className="h-24 text-center text-sm text-muted-foreground"
+                                            className="h-28 text-center text-sm text-muted-foreground"
                                         >
-                                            {doku_PCF
-                                                ? 'Click "Add Item" to add received items.'
-                                                : "Select a PO Confirmation first."}
+                                            {doku_PCF ? (
+                                                <>
+                                                    Click{" "}
+                                                    <span className="font-medium text-foreground">
+                                                        Add Item
+                                                    </span>{" "}
+                                                    above to add received
+                                                    items.
+                                                </>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    <Lock className="size-3.5" />
+                                                    Select a PO Confirmation
+                                                    above to unlock this
+                                                    table.
+                                                </span>
+                                            )}
+                                            {fieldErrors.header.lineItems && (
+                                                <p className="mt-1 text-[11px] text-destructive">
+                                                    {
+                                                        fieldErrors.header
+                                                            .lineItems
+                                                    }
+                                                </p>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    lineItems.map((item, index) => (
-                                        <TableRow key={index}>
-                                            <TableCell className="text-xs text-muted-foreground">
-                                                {index + 1}
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSelect
-                                                    items={inventoryItems}
-                                                    value={item.kode_Brg}
-                                                    onValueChange={(v) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "kode_Brg",
-                                                            v,
-                                                        )
-                                                    }
-                                                    placeholder="Item"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    value={item.model}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "model",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    type="number"
-                                                    min="1"
-                                                    value={item.jumlah}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "jumlah",
-                                                            Number(
+                                    lineItems.map((item, index) => {
+                                        const lineErr =
+                                            fieldErrors.lines[index];
+                                        return (
+                                            <TableRow key={index}>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {index + 1}
+                                                </TableCell>
+                                                <TableCell className="w-[160px]">
+                                                    <DataSelect
+                                                        items={inventoryItems}
+                                                        value={item.kode_Brg}
+                                                        onValueChange={(v) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "kode_Brg",
+                                                                v,
+                                                            )
+                                                        }
+                                                        placeholder="Select item"
+                                                        error={
+                                                            lineErr?.kode_Brg
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.kode_Brg
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[80px]">
+                                                    <Input
+                                                        value={item.model}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "model",
                                                                 e.target.value,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    value={item.serialNo}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "serialNo",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={item.harga}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "harga",
-                                                            Number(
+                                                            )
+                                                        }
+                                                        className="h-8 w-full"
+                                                        aria-invalid={
+                                                            !!lineErr?.model
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={lineErr?.model}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[95px]">
+                                                    <Input
+                                                        type="number"
+                                                        min="1"
+                                                        value={item.jumlah}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "jumlah",
+                                                                Number(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="h-9 w-full tabular-nums"
+                                                        aria-invalid={
+                                                            !!lineErr?.jumlah
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.jumlah
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[90px]">
+                                                    <Input
+                                                        value={item.serialNo}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "serialNo",
                                                                 e.target.value,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    value={item.discPct}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "discPct",
-                                                            Number(
+                                                            )
+                                                        }
+                                                        className="h-8 w-full"
+                                                        aria-invalid={
+                                                            !!lineErr?.serialNo
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.serialNo
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[105px]">
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        value={item.harga}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "harga",
+                                                                Number(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="h-8 w-full"
+                                                        aria-invalid={
+                                                            !!lineErr?.harga
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={lineErr?.harga}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[85px]">
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        value={item.discPct}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "discPct",
+                                                                Number(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="h-9 w-full tabular-nums"
+                                                        aria-invalid={
+                                                            !!lineErr?.discPct
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.discPct
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[80px] text-right text-xs tabular-nums">
+                                                    {item.disc.toLocaleString(
+                                                        "id-ID",
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="w-[105px] text-right text-xs font-medium tabular-nums">
+                                                    {item.nilai.toLocaleString(
+                                                        "id-ID",
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="w-[110px]">
+                                                    <Input
+                                                        value={item.description}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "description",
                                                                 e.target.value,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell className="text-right text-xs tabular-nums">
-                                                {item.disc.toLocaleString(
-                                                    "id-ID",
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right text-xs font-medium tabular-nums">
-                                                {item.nilai.toLocaleString(
-                                                    "id-ID",
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    value={item.description}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "description",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSelect
-                                                    items={warehouseItems}
-                                                    value={item.kode_Gudang}
-                                                    onValueChange={(v) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "kode_Gudang",
-                                                            v,
-                                                        )
-                                                    }
-                                                    placeholder="WH"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    value={item.information}
-                                                    onChange={(e) =>
-                                                        updateLineItem(
-                                                            index,
-                                                            "information",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="h-8"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="size-8"
-                                                    onClick={() =>
-                                                        removeLineItem(index)
-                                                    }
-                                                >
-                                                    <Trash2 className="size-3.5" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                            )
+                                                        }
+                                                        className="h-8 w-full"
+                                                        aria-invalid={
+                                                            !!lineErr?.description
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.description
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[120px]">
+                                                    <DataSelect
+                                                        items={warehouseItems}
+                                                        value={item.kode_Gudang}
+                                                        onValueChange={(v) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "kode_Gudang",
+                                                                v,
+                                                            )
+                                                        }
+                                                        placeholder="Select warehouse"
+                                                        error={
+                                                            lineErr?.kode_Gudang
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.kode_Gudang
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[85px]">
+                                                    <Input
+                                                        value={item.information}
+                                                        onChange={(e) =>
+                                                            updateLineItem(
+                                                                index,
+                                                                "information",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="h-8 w-full"
+                                                        aria-invalid={
+                                                            !!lineErr?.information
+                                                        }
+                                                    />
+                                                    <FieldError
+                                                        message={
+                                                            lineErr?.information
+                                                        }
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="w-[40px]">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="size-8"
+                                                        onClick={() =>
+                                                            removeLineItem(
+                                                                index,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="size-3.5" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>
