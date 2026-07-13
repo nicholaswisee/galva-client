@@ -1,6 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
@@ -31,7 +31,7 @@ export function GRDetailPage() {
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to="/gr">
+          <Link to="/gr" search={{ tab: "receipts" }}>
             <Button variant="ghost" size="icon" className="size-8">
               <ArrowLeft className="size-4" />
             </Button>
@@ -41,7 +41,17 @@ export function GRDetailPage() {
             <p className="text-sm text-muted-foreground">Goods Receipt Details</p>
           </div>
         </div>
-        {gr && <StatusBadge status={gr.status} />}
+        <div className="flex items-center gap-2">
+          {gr && (
+            <Link to="/gr/invoices/new" search={{ doku_LPB: gr.doku }}>
+              <Button size="sm" variant="outline">
+                <FilePlus className="mr-1.5 size-4" />
+                Create Invoice
+              </Button>
+            </Link>
+          )}
+          {gr && <StatusBadge status={gr.status} />}
+        </div>
       </div>
 
       {isLoading ? (

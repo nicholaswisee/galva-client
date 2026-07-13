@@ -215,7 +215,7 @@ export function GRCreatePage() {
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
             toast.success(`Goods receipt ${result.doku} created successfully`);
-            navigate({ to: "/gr" });
+            navigate({ to: "/gr", search: { tab: "receipts" } });
         },
         onError: (error) => {
             toast.error(error.message);

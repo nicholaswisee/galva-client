@@ -37,7 +37,7 @@ export function InvoiceCreatePage() {
   const [kode_Dept, setKode_Dept] = useState("");
   const [kode_Valas, setKode_Valas] = useState("Rp.");
   const [kurs, setKurs] = useState(1.0);
-  const [nilai] = useState(0);
+  const [nilai, setNilai] = useState(0);
   const [ppn, setPpn] = useState(0);
   const [diskon] = useState(0);
   const [misc] = useState(0);
@@ -72,7 +72,7 @@ export function InvoiceCreatePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("AP invoice created successfully");
-      navigate({ to: "/ap" });
+      navigate({ to: "/gr", search: { tab: "invoices-gr" } });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -87,6 +87,7 @@ export function InvoiceCreatePage() {
     const gr = grs?.find((g) => g.doku === doku_LPB);
     updated[index] = { doku_LPB, nilaiLPB: gr?.nilai ?? 0 };
     setGrLinks(updated);
+    setNilai(updated.reduce((sum, link) => sum + link.nilaiLPB, 0));
   };
 
   const aggregatedGRTotal = grLinks.reduce((sum, link) => sum + link.nilaiLPB, 0);
@@ -106,6 +107,8 @@ export function InvoiceCreatePage() {
       ppn,
       diskon,
       misc,
+      doku_FP: fakturPajak || null,
+      tgl_FP: tglFp ? new Date(tglFp).toISOString() : null,
       keterangan: keterangan || null,
       gRLinks: grLinks.map((link) => ({
         doku_LPB: link.doku_LPB,

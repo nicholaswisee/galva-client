@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -77,6 +78,7 @@ export function InvoicePOCreatePage() {
   const [expCom2, setExpCom2] = useState(0);
   const [impHand, setImpHand] = useState(0);
   const [other, setOther] = useState(0);
+  const [keterangan, setKeterangan] = useState("");
 
   const { data: pos } = useQuery<POListItem[]>({
     queryKey: ["purchase-orders"],
@@ -108,7 +110,7 @@ export function InvoicePOCreatePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("Invoice AP (PO-based) created");
-      navigate({ to: "/ap" });
+      navigate({ to: "/gr", search: { tab: "invoices-po" } });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -123,7 +125,71 @@ export function InvoicePOCreatePage() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    createInvoice.mutate({ doku: doku || null, tgl: new Date(tgl).toISOString(), kode_Supplier, nopen, awbBl, amount, ppn: ppnRp, totalRp, poLinks, invoiceLines });
+
+    const extraChargeLines = [
+      { key: "Insurance", value: insurance },
+      { key: "Interest", value: interest },
+      { key: "ExpCom1", value: expCom1 },
+      { key: "ExpCom2", value: expCom2 },
+      { key: "ImportHandling", value: impHand },
+      { key: "Other", value: other },
+    ]
+      .filter((c) => c.value > 0)
+      .map((c) => ({
+        tipeBiaya: c.key,
+        apRef: "",
+        invoiceNo: "",
+        tgl: null,
+        term: 0,
+        amount: c.value,
+        kurs: "Rp.",
+        rate: 1,
+        amountRp: c.value,
+        fakturPajak: "",
+        tglFp: null,
+        ppnPct: 0,
+        ppnRp: 0,
+        totalRp: c.value,
+      }));
+
+    createInvoice.mutate({
+      doku: doku || null,
+      tgl: new Date(tgl).toISOString(),
+      kode_Supplier,
+      nopen,
+      tglNopen: tglNopen ? new Date(tglNopen).toISOString() : null,
+      awbBl,
+      amount,
+      ppn: ppnRp,
+      totalRp,
+      keterangan: keterangan || null,
+      poLinks: poLinks.map((p) => ({
+        doku_PO: p.doku_PO,
+        tgl: p.tgl ? new Date(p.tgl).toISOString() : null,
+        amount: p.amount,
+        tax: p.tax,
+        basedOn: p.basedOn || null,
+      })),
+      costLines: [
+        ...invoiceLines.map((l) => ({
+          tipeBiaya: null,
+          apRef: l.apRef || null,
+          invoiceNo: l.invoiceNo || null,
+          tglInvoice: l.tgl ? new Date(l.tgl).toISOString() : null,
+          term: l.term || 0,
+          amount: l.amount,
+          kode_Valas: l.kurs,
+          rate: l.rate,
+          amountRp: l.amountRp,
+          fakturPajak: l.fakturPajak || null,
+          tgl_FP: l.tglFp ? new Date(l.tglFp).toISOString() : null,
+          ppnPct: l.ppnPct,
+          ppnRp: l.ppnRp,
+          totalRp: l.totalRp,
+        })),
+        ...extraChargeLines,
+      ],
+    });
   };
 
   const vendorItems = vendors?.map((v) => ({ code: v.kode, label: `${v.kode} - ${v.nama}` })) ?? [];
@@ -279,6 +345,10 @@ export function InvoicePOCreatePage() {
               <div className="space-y-1.5"><label className="text-xs font-medium">Exp.Com2</label><Input type="number" step="0.01" value={expCom2} onChange={(e) => setExpCom2(Number(e.target.value))} /></div>
               <div className="space-y-1.5"><label className="text-xs font-medium">Imp.Hand</label><Input type="number" step="0.01" value={impHand} onChange={(e) => setImpHand(Number(e.target.value))} /></div>
               <div className="space-y-1.5"><label className="text-xs font-medium">Other</label><Input type="number" step="0.01" value={other} onChange={(e) => setOther(Number(e.target.value))} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Keterangan</label>
+              <Textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows={3} placeholder="Description / notes..." />
             </div>
           </div>
           <div className="rounded-md border bg-card p-4">

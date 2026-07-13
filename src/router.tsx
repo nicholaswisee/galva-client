@@ -4,9 +4,7 @@ import {
   createRouter,
   Outlet,
   Navigate,
-  useRouterState,
 } from "@tanstack/react-router";
-import { useAuth } from "./lib/auth";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -17,10 +15,9 @@ import { POListPage } from "./pages/po/POListPage";
 import { PONewPage } from "./pages/po/PONewPage";
 import { POEditPage } from "./pages/po/POEditPage";
 import { POPrintPage } from "./pages/po/POPrintPage";
-import { GRListPage } from "./pages/gr/GRListPage";
+import { GoodsReceiptsShellPage } from "./pages/gr/GoodsReceiptsShellPage";
 import { GRCreatePage } from "./pages/gr/GRCreatePage";
 import { GRDetailPage } from "./pages/gr/GRDetailPage";
-import { InvoiceListPage } from "./pages/invoice/InvoiceListPage";
 import { InvoiceCreatePage } from "./pages/invoice/InvoiceCreatePage";
 import { InvoiceDetailPage } from "./pages/invoice/InvoiceDetailPage";
 import { POConfirmListPage } from "./pages/po-confirm/POConfirmListPage";
@@ -28,26 +25,15 @@ import { POConfirmNewPage } from "./pages/po-confirm/POConfirmNewPage";
 import { POConfirmEditPage } from "./pages/po-confirm/POConfirmEditPage";
 import { POConfirmPrintPage } from "./pages/po-confirm/POConfirmPrintPage";
 import { InvoicePOCreatePage } from "./pages/invoice-po/InvoicePOCreatePage";
+import { LegacyInvoiceDetailRedirect } from "./pages/invoice/LegacyInvoiceDetailRedirect";
 import { VoucherAPCreatePage } from "./pages/voucher/VoucherAPCreatePage";
 import { MasterDataPage } from "./pages/MasterDataPage";
+import { AuthGuard } from "./components/auth/AuthGuard";
 import { ProjectPage } from "./pages/placeholder/ProjectPage";
 import { InventoryPage } from "./pages/placeholder/InventoryPage";
 import { AccountReceivablePage } from "./pages/placeholder/AccountReceivablePage";
 import { PPICPage } from "./pages/placeholder/PPICPage";
 import { BankingPage } from "./pages/placeholder/BankingPage";
-
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { location } = useRouterState();
-  // Wait for the silent refresh to complete before deciding auth state.
-  // Without this, the guard would redirect to /in immediately because
-  // the access token hasn't been restored yet.
-  if (isLoading) return null;
-  if (!isAuthenticated) {
-    return <Navigate to="/in" search={{ redirect: location.pathname }} />;
-  }
-  return <>{children}</>;
-}
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -129,7 +115,10 @@ const poPrintRoute = createRoute({
 const grListRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/gr",
-  component: GRListPage,
+  component: GoodsReceiptsShellPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
 });
 
 const grCreateRoute = createRoute({
@@ -144,22 +133,40 @@ const grDetailRoute = createRoute({
   component: GRDetailPage,
 });
 
-const invoiceListRoute = createRoute({
+const grInvoiceCreateRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
-  path: "/ap",
-  component: InvoiceListPage,
-});
-
-const invoiceCreateRoute = createRoute({
-  getParentRoute: () => dashboardLayoutRoute,
-  path: "/ap/new",
+  path: "/gr/invoices/new",
   component: InvoiceCreatePage,
 });
 
-const invoiceDetailRoute = createRoute({
+const grInvoiceDetailRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/gr/invoices/$id",
+  component: InvoiceDetailPage,
+});
+
+const grInvoicePOCreateRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/gr/invoices/po-based/new",
+  component: InvoicePOCreatePage,
+});
+
+const legacyInvoiceListRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/ap",
+  component: () => <Navigate to="/gr" search={{ tab: "invoices-gr" }} />,
+});
+
+const legacyInvoiceCreateRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/ap/new",
+  component: () => <Navigate to="/gr/invoices/new" />,
+});
+
+const legacyInvoiceDetailRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/ap/$id",
-  component: InvoiceDetailPage,
+  component: LegacyInvoiceDetailRedirect,
 });
 
 const poConfirmRoute = createRoute({
@@ -189,10 +196,10 @@ const poConfirmPrintRoute = createRoute({
   component: POConfirmPrintPage,
 });
 
-const invoicePOCreateRoute = createRoute({
+const legacyInvoicePOCreateRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/ap/po-based/new",
-  component: InvoicePOCreatePage,
+  component: () => <Navigate to="/gr/invoices/po-based/new" />,
 });
 
 const voucherAPCreateRoute = createRoute({
@@ -251,14 +258,17 @@ const routeTree = rootRoute.addChildren([
     grListRoute,
     grCreateRoute,
     grDetailRoute,
-    invoiceListRoute,
-    invoiceCreateRoute,
-    invoiceDetailRoute,
+    grInvoiceCreateRoute,
+    grInvoiceDetailRoute,
+    grInvoicePOCreateRoute,
+    legacyInvoiceListRoute,
+    legacyInvoiceCreateRoute,
+    legacyInvoiceDetailRoute,
+    legacyInvoicePOCreateRoute,
     poConfirmRoute,
     poConfirmNewRoute,
     poConfirmDetailRoute,
     poConfirmPrintRoute,
-    invoicePOCreateRoute,
     voucherAPCreateRoute,
     masterDataRoute,
     projectRoute,

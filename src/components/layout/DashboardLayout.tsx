@@ -5,7 +5,6 @@ import {
   FileText,
   ShoppingCart,
   Package,
-  Receipt,
   LogOut,
   Menu,
   X,
@@ -17,8 +16,6 @@ import {
   CreditCard,
   LandmarkIcon,
   CheckCircle,
-  FileSpreadsheet,
-  Wallet,
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,15 +60,7 @@ const apSections: NavSection[] = [
       { label: "Purchase Requisitions", icon: FileText, to: "/pr", match: (p) => p.startsWith("/pr") },
       { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") && !p.startsWith("/po-confirm") },
       { label: "PO Confirmation", icon: CheckCircle, to: "/po-confirm", match: (p) => p.startsWith("/po-confirm") },
-      { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") },
-    ],
-  },
-  {
-    title: "Account Payable",
-    items: [
-      { label: "AP Invoices", icon: Receipt, to: "/ap", match: (p) => p.startsWith("/ap") && !p.includes("po-based") && !p.includes("voucher") },
-      { label: "Invoice AP (PO)", icon: FileSpreadsheet, to: "/ap/po-based/new", match: (p) => p.startsWith("/ap/po-based") },
-      { label: "AP Voucher", icon: Wallet, to: "/ap/voucher/new", match: (p) => p.startsWith("/ap/voucher") },
+      { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") || p.startsWith("/ap") },
     ],
   },
   {

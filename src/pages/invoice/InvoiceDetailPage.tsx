@@ -23,7 +23,10 @@ export function InvoiceDetailPage() {
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to="/ap">
+          <Link
+            to="/gr"
+            search={{ tab: inv?.sourceType === "POConfirm" ? "invoices-po" : "invoices-gr" }}
+          >
             <Button variant="ghost" size="icon" className="size-8">
               <ArrowLeft className="size-4" />
             </Button>
