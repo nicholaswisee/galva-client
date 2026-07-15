@@ -60,7 +60,8 @@ const apSections: NavSection[] = [
       { label: "Purchase Requisitions", icon: FileText, to: "/pr", match: (p) => p.startsWith("/pr") },
       { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") && !p.startsWith("/po-confirm") },
       { label: "PO Confirmation", icon: CheckCircle, to: "/po-confirm", match: (p) => p.startsWith("/po-confirm") },
-      { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") || p.startsWith("/ap") },
+      { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") },
+      { label: "Invoices", icon: FileText, to: "/invoices", match: (p) => p.startsWith("/invoices") || p.startsWith("/ap") },
     ],
   },
   {

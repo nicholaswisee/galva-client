@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Eye } from "lucide-react";
+import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -110,7 +110,7 @@ export function InvoicePOCreatePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("Invoice AP (PO-based) created");
-      navigate({ to: "/gr", search: { tab: "invoices-po" } });
+      navigate({ to: "/invoices", search: { tab: "po" } });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -207,11 +207,21 @@ export function InvoicePOCreatePage() {
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-2">
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><FilePlus className="size-4" />New</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Pencil className="size-4" />Edit</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Trash className="size-4" />Delete</Button>
-          <Button type="submit" variant="ghost" size="sm" className="gap-1.5" disabled={createInvoice.isPending}><Save className="size-4" />Save</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Eye className="size-4" />Preview</Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => navigate({ to: "/invoices/po-based/new" })}>
+            <FilePlus className="size-4" />New
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" disabled>
+            <Pencil className="size-4" />Edit
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" disabled>
+            <Trash className="size-4" />Delete
+          </Button>
+          <Button type="submit" variant="ghost" size="sm" className="gap-1.5" disabled={createInvoice.isPending}>
+            <Save className="size-4" />Save
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => window.print()}>
+            <Printer className="size-4" />Print
+          </Button>
           <div className="ml-auto"><Badge variant="outline">Draft</Badge></div>
         </div>
 

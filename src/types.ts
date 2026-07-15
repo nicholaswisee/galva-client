@@ -192,7 +192,7 @@ export interface InvoiceListItem {
   supplierName: string | null;
   nilai: number;
   sts: string;
-  sourceType?: string | null;
+  tipeBiaya?: string | null;
   eTag: string;
 }
 
@@ -208,7 +208,7 @@ export interface InvoiceDetail {
   misc: number;
   sts: string;
   keterangan: string | null;
-  sourceType?: string | null;
+  tipeBiaya?: string | null;
   eTag: string;
 }
 

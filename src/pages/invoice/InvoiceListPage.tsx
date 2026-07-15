@@ -21,28 +21,33 @@ import type { InvoiceListItem } from "@/types";
 
 const PAGE_SIZE = 10;
 
-type Source = "GR" | "POConfirm";
+type TipeBiaya = "LPB" | "PO";
 
-const TITLES: Record<Source, { title: string; subtitle: string }> = {
-  GR: {
+const TITLES: Record<TipeBiaya, { title: string; subtitle: string }> = {
+  LPB: {
     title: "AP Invoices (Based on GR)",
     subtitle: "Invoices linked to goods receipts",
   },
-  POConfirm: {
+  PO: {
     title: "AP Invoices (Based on PO Confirm)",
     subtitle: "Invoices linked to purchase order confirmations",
   },
 };
 
-export function InvoiceListPage({ source = "GR" }: { source?: Source }) {
+const NEW_PATHS: Record<TipeBiaya, string> = {
+  LPB: "/invoices/new",
+  PO: "/invoices/po-based/new",
+};
+
+export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }) {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
-  const { data: invoices, isLoading } = useInvoiceList(source);
+  const { data: invoices, isLoading } = useInvoiceList(tipeBiaya);
   const deleteInvoice = useDeleteInvoice();
   const [deleting, setDeleting] = useState<InvoiceListItem | null>(null);
 
-  const { title, subtitle } = TITLES[source];
+  const { title, subtitle } = TITLES[tipeBiaya];
 
   const needle = q.trim().toLowerCase();
   const filtered = (invoices ?? []).filter((inv) => {
@@ -57,8 +62,7 @@ export function InvoiceListPage({ source = "GR" }: { source?: Source }) {
   const total = filtered.length;
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const newInvoicePath =
-    source === "POConfirm" ? "/gr/invoices/po-based/new" : "/gr/invoices/new";
+  const newInvoicePath = NEW_PATHS[tipeBiaya];
 
   return (
     <div className="space-y-6 p-4 lg:p-6">
@@ -83,7 +87,7 @@ export function InvoiceListPage({ source = "GR" }: { source?: Source }) {
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Nilai</TableHead>
               <TableHead className="w-[100px]">STS</TableHead>
-              <TableHead className="w-[120px]">Source</TableHead>
+              <TableHead className="w-[120px]">Type</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
           </TableHeader>
@@ -111,7 +115,7 @@ export function InvoiceListPage({ source = "GR" }: { source?: Source }) {
                 <TableRow
                   key={inv.doku}
                   className="cursor-pointer"
-                  onClick={() => navigate({ to: "/gr/invoices/$id", params: { id: inv.doku } })}
+                  onClick={() => navigate({ to: "/invoices/$id", params: { id: inv.doku } })}
                 >
                   <TableCell className="font-medium">{inv.doku}</TableCell>
                   <TableCell className="text-sm">{inv.supplierName ?? inv.kode_Supplier ?? "-"}</TableCell>
@@ -121,7 +125,7 @@ export function InvoiceListPage({ source = "GR" }: { source?: Source }) {
                   </TableCell>
                   <TableCell><StatusBadge status={inv.sts ?? "0"} /></TableCell>
                   <TableCell>
-                    <Badge variant="outline">{inv.sourceType ?? source}</Badge>
+                    <Badge variant="outline">{inv.tipeBiaya ?? tipeBiaya}</Badge>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button

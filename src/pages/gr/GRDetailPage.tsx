@@ -43,7 +43,7 @@ export function GRDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {gr && (
-            <Link to="/gr/invoices/new" search={{ doku_LPB: gr.doku }}>
+            <Link to="/invoices/new" search={{ doku_LPB: gr.doku }}>
               <Button size="sm" variant="outline">
                 <FilePlus className="mr-1.5 size-4" />
                 Create Invoice

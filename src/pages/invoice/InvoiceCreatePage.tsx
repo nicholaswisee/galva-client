@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Eye } from "lucide-react";
+import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ interface GRLink {
 
 export function InvoiceCreatePage() {
   const navigate = useNavigate();
+  const { location } = useRouterState();
   const queryClient = useQueryClient();
   const { data: vendors } = useVendors();
   const { data: departments } = useDepartments();
@@ -55,6 +56,18 @@ export function InvoiceCreatePage() {
     },
   });
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const doku_LPB = params.get("doku_LPB");
+    if (!doku_LPB || grs === undefined) return;
+    if (grLinks.some((l) => l.doku_LPB === doku_LPB)) return;
+    const gr = grs.find((g) => g.doku === doku_LPB);
+    if (!gr) return;
+    const updated = [...grLinks, { doku_LPB, nilaiLPB: gr.nilai ?? 0 }];
+    setGrLinks(updated);
+    setNilai(updated.reduce((sum, link) => sum + link.nilaiLPB, 0));
+  }, [location.search, grs]);
+
   const availableGRs = (grs ?? []).map((gr) => ({
     code: gr.doku ?? "",
     label: `${gr.doku} - ${gr.supplierName ?? ""} - ${(gr.nilai ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })}`,
@@ -72,7 +85,7 @@ export function InvoiceCreatePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("AP invoice created successfully");
-      navigate({ to: "/gr", search: { tab: "invoices-gr" } });
+      navigate({ to: "/invoices", search: { tab: "lpb" } });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -130,11 +143,21 @@ export function InvoiceCreatePage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 rounded-md border bg-card p-2">
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><FilePlus className="size-4" />New</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Pencil className="size-4" />Edit</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Trash className="size-4" />Delete</Button>
-          <Button type="submit" variant="ghost" size="sm" className="gap-1.5" disabled={createInvoice.isPending}><Save className="size-4" />Save</Button>
-          <Button type="button" variant="ghost" size="sm" className="gap-1.5"><Eye className="size-4" />Preview</Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => navigate({ to: "/invoices/new" })}>
+            <FilePlus className="size-4" />New
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" disabled>
+            <Pencil className="size-4" />Edit
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" disabled>
+            <Trash className="size-4" />Delete
+          </Button>
+          <Button type="submit" variant="ghost" size="sm" className="gap-1.5" disabled={createInvoice.isPending}>
+            <Save className="size-4" />Save
+          </Button>
+          <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => window.print()}>
+            <Printer className="size-4" />Print
+          </Button>
           <div className="ml-auto">
             <Badge variant="outline">Draft</Badge>
           </div>

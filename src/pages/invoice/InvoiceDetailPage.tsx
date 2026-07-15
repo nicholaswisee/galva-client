@@ -1,6 +1,6 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FilePlus, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,6 +9,7 @@ import type { InvoiceDetail } from "@/types";
 
 export function InvoiceDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
+  const navigate = useNavigate();
   const { data: inv, isLoading } = useQuery<InvoiceDetail>({
     queryKey: ["invoices", id],
     queryFn: async () => {
@@ -24,8 +25,8 @@ export function InvoiceDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
-            to="/gr"
-            search={{ tab: inv?.sourceType === "POConfirm" ? "invoices-po" : "invoices-gr" }}
+            to="/invoices"
+            search={{ tab: inv?.tipeBiaya === "PO" ? "po" : "lpb" }}
           >
             <Button variant="ghost" size="icon" className="size-8">
               <ArrowLeft className="size-4" />
@@ -36,7 +37,27 @@ export function InvoiceDetailPage() {
             <p className="text-sm text-muted-foreground">AP Invoice Details</p>
           </div>
         </div>
-        {inv && <StatusBadge status={inv.sts ?? "0"} />}
+        <div className="flex items-center gap-2">
+          {inv && <StatusBadge status={inv.sts ?? "0"} />}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => navigate({ to: "/invoices/new" })}
+          >
+            <FilePlus className="size-4" />New
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => window.print()}
+          >
+            <Printer className="size-4" />Print
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

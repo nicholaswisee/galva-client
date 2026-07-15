@@ -1,15 +1,14 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Package, FileText } from "lucide-react";
+import { Package } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GRListPage } from "./GRListPage";
-import { InvoiceListPage } from "../invoice/InvoiceListPage";
 
-type TabValue = "receipts" | "invoices-gr" | "invoices-po";
+type TabValue = "receipts";
 
 const DEFAULT_TAB: TabValue = "receipts";
 
 function isTabValue(value: string | undefined): value is TabValue {
-  return value === "receipts" || value === "invoices-gr" || value === "invoices-po";
+  return value === "receipts";
 }
 
 export function GoodsReceiptsShellPage() {
@@ -32,36 +31,22 @@ export function GoodsReceiptsShellPage() {
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Goods Receipts & Invoices</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Goods Receipts</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Receive goods and manage AP invoices in one place
+          Receive goods against PO confirmations
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 sm:w-fit sm:inline-flex">
+        <TabsList className="grid w-full grid-cols-1 sm:w-fit sm:inline-flex">
           <TabsTrigger value="receipts" className="gap-1.5">
             <Package className="hidden size-4 sm:inline" />
             Goods Receipts
-          </TabsTrigger>
-          <TabsTrigger value="invoices-gr" className="gap-1.5">
-            <FileText className="hidden size-4 sm:inline" />
-            Invoices (Based on GR)
-          </TabsTrigger>
-          <TabsTrigger value="invoices-po" className="gap-1.5">
-            <FileText className="hidden size-4 sm:inline" />
-            Invoices (Based on PO Confirm)
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="receipts" className="m-0">
           <GRListPage />
-        </TabsContent>
-        <TabsContent value="invoices-gr" className="m-0">
-          <InvoiceListPage source="GR" />
-        </TabsContent>
-        <TabsContent value="invoices-po" className="m-0">
-          <InvoiceListPage source="POConfirm" />
         </TabsContent>
       </Tabs>
     </div>

@@ -9,11 +9,13 @@ function extractETag(res: Response): string | null {
   return etag.replace(/^W\//, "").replace(/^"|"$/g, "");
 }
 
-export function useInvoiceList(source?: "GR" | "POConfirm") {
+export function useInvoiceList(tipeBiaya?: "LPB" | "PO") {
   return useQuery<InvoiceListItem[]>({
-    queryKey: ["invoices", source ?? "all"],
+    queryKey: ["invoices", tipeBiaya ?? "all"],
     queryFn: async () => {
-      const url = source ? `/api/invoices?source=${encodeURIComponent(source)}` : "/api/invoices";
+      const url = tipeBiaya
+        ? `/api/invoices?tipeBiaya=${encodeURIComponent(tipeBiaya)}`
+        : "/api/invoices";
       const res = await api.get(url);
       if (!res.ok) throw new Error("Failed to fetch invoices");
       return res.json();
