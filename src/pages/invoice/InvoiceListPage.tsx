@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
@@ -22,17 +21,6 @@ import type { InvoiceListItem } from "@/types";
 const PAGE_SIZE = 10;
 
 type TipeBiaya = "LPB" | "PO";
-
-const TITLES: Record<TipeBiaya, { title: string; subtitle: string }> = {
-  LPB: {
-    title: "AP Invoices (Based on GR)",
-    subtitle: "Invoices linked to goods receipts",
-  },
-  PO: {
-    title: "AP Invoices (Based on PO Confirm)",
-    subtitle: "Invoices linked to purchase order confirmations",
-  },
-};
 
 const NEW_PATHS: Record<TipeBiaya, string> = {
   LPB: "/invoices/new",
@@ -46,8 +34,6 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
   const { data: invoices, isLoading } = useInvoiceList(tipeBiaya);
   const deleteInvoice = useDeleteInvoice();
   const [deleting, setDeleting] = useState<InvoiceListItem | null>(null);
-
-  const { title, subtitle } = TITLES[tipeBiaya];
 
   const needle = q.trim().toLowerCase();
   const filtered = (invoices ?? []).filter((inv) => {
@@ -65,18 +51,12 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
   const newInvoicePath = NEW_PATHS[tipeBiaya];
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SearchInput value={q} onChange={setQ} placeholder="Search invoices..." />
-          <Button onClick={() => navigate({ to: newInvoicePath })}>
-            <Plus className="mr-1.5 size-4" />New Invoice
-          </Button>
-        </div>
+        <SearchInput value={q} onChange={setQ} placeholder="Search invoices..." className="max-w-sm" />
+        <Button onClick={() => navigate({ to: newInvoicePath })}>
+          <Plus className="mr-1.5 size-4" />New Invoice
+        </Button>
       </div>
       <div className="rounded-md border bg-card">
         <Table>
@@ -87,7 +67,6 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Nilai</TableHead>
               <TableHead className="w-[100px]">STS</TableHead>
-              <TableHead className="w-[120px]">Type</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
           </TableHeader>
@@ -100,13 +79,12 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-8" /></TableCell>
                 </TableRow>
               ))
             ) : paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="h-32 text-center text-sm text-muted-foreground">
                   {needle ? "No invoices match your search." : "No invoices yet. Click \"New Invoice\" to create one."}
                 </TableCell>
               </TableRow>
@@ -124,10 +102,7 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
                     {inv.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }) ?? "-"}
                   </TableCell>
                   <TableCell><StatusBadge status={inv.sts ?? "0"} /></TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{inv.tipeBiaya ?? tipeBiaya}</Badge>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell onClick={(e) => e.stopPropagation()})>
                     <Button
                       variant="ghost"
                       size="icon"

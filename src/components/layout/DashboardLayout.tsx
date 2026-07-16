@@ -61,7 +61,12 @@ const apSections: NavSection[] = [
       { label: "Purchase Orders", icon: ShoppingCart, to: "/po", match: (p) => p.startsWith("/po") && !p.startsWith("/po-confirm") },
       { label: "PO Confirmation", icon: CheckCircle, to: "/po-confirm", match: (p) => p.startsWith("/po-confirm") },
       { label: "Goods Receipts", icon: Package, to: "/gr", match: (p) => p.startsWith("/gr") },
-      { label: "Invoices", icon: FileText, to: "/invoices", match: (p) => p.startsWith("/invoices") || p.startsWith("/ap") },
+    ],
+  },
+  {
+    title: "Accounts Payable",
+    items: [
+      { label: "Invoices", icon: FileText, to: "/invoices", match: (p) => p.startsWith("/invoices") },
     ],
   },
   {
@@ -148,7 +153,7 @@ const bankingSections: NavSection[] = [
 ];
 
 function getActiveModuleFromPath(path: string): ModuleId | null {
-  if (path.startsWith("/pr") || path.startsWith("/po") || path.startsWith("/gr") || path.startsWith("/ap") || path.startsWith("/po-confirm") || path.startsWith("/md")) return "ap";
+  if (path.startsWith("/pr") || path.startsWith("/po") || path.startsWith("/gr") || path.startsWith("/ap") || path.startsWith("/po-confirm") || path.startsWith("/md") || path.startsWith("/invoices")) return "ap";
   if (path.startsWith("/project")) return "project";
   if (path.startsWith("/inv")) return "inventory";
   if (path.startsWith("/ar")) return "ar";
