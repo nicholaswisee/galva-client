@@ -38,6 +38,42 @@ export function useInvoiceDetail(doku: string | null) {
   });
 }
 
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      doku: string;
+      sts: string;
+      keterangan: string | null;
+      eTag: string;
+    }) => {
+      const res = await api.put(
+        `/api/invoices/${encodeURIComponent(payload.doku)}`,
+        {
+          doku: payload.doku,
+          sts: payload.sts,
+          keterangan: payload.keterangan,
+          eTag: payload.eTag,
+        },
+        { ifMatch: payload.eTag },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw Object.assign(
+          new Error(err?.error ?? err?.detail ?? "Failed to update invoice"),
+          { status: res.status },
+        );
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success("Invoice updated");
+    },
+    onError: (error: Error & { status?: number }) => toast.error(error.message),
+  });
+}
+
 export function useDeleteInvoice() {
   const queryClient = useQueryClient();
   return useMutation({

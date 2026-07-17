@@ -53,7 +53,7 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <SearchInput value={q} onChange={setQ} placeholder="Search invoices..." className="max-w-sm" />
+        <SearchInput value={q} onChange={setQ} placeholder="Search invoices..." />
         <Button onClick={() => navigate({ to: newInvoicePath })}>
           <Plus className="mr-1.5 size-4" />New Invoice
         </Button>
@@ -102,7 +102,7 @@ export function InvoiceListPage({ tipeBiaya = "LPB" }: { tipeBiaya?: TipeBiaya }
                     {inv.nilai?.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }) ?? "-"}
                   </TableCell>
                   <TableCell><StatusBadge status={inv.sts ?? "0"} /></TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()})>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="icon"

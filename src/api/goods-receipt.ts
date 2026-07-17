@@ -35,6 +35,46 @@ export function useGoodsReceiptDetail(doku: string | null) {
   });
 }
 
+export function useUpdateGoodsReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      doku: string;
+      sts: string;
+      status: string;
+      memo: string | null;
+      ppn: number | null;
+      eTag: string;
+    }) => {
+      const res = await api.put(
+        `/api/goods-receipts/${encodeURIComponent(payload.doku)}`,
+        {
+          doku: payload.doku,
+          sts: payload.sts,
+          status: payload.status,
+          memo: payload.memo,
+          ppn: payload.ppn,
+          eTag: payload.eTag,
+        },
+        { ifMatch: payload.eTag },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw Object.assign(
+          new Error(err?.error ?? err?.detail ?? "Failed to update goods receipt"),
+          { status: res.status },
+        );
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
+      toast.success("Goods receipt updated");
+    },
+    onError: (error: Error & { status?: number }) => toast.error(error.message),
+  });
+}
+
 export function useDeleteGoodsReceipt() {
   const queryClient = useQueryClient();
   return useMutation({
