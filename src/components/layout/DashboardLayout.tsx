@@ -17,9 +17,10 @@ import {
   LandmarkIcon,
   CheckCircle,
   ArrowLeft,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
 const MODULE_KEY = "galva_active_module";
@@ -67,6 +68,8 @@ const apSections: NavSection[] = [
     title: "Accounts Payable",
     items: [
       { label: "Invoices", icon: FileText, to: "/invoices", match: (p) => p.startsWith("/invoices") },
+      { label: "Payments", icon: CreditCard, to: "/payments", match: (p) => p.startsWith("/payments") },
+      { label: "Returns", icon: RotateCcw, to: "/returns", match: (p) => p.startsWith("/returns") },
     ],
   },
   {
@@ -153,7 +156,7 @@ const bankingSections: NavSection[] = [
 ];
 
 function getActiveModuleFromPath(path: string): ModuleId | null {
-  if (path.startsWith("/pr") || path.startsWith("/po") || path.startsWith("/gr") || path.startsWith("/ap") || path.startsWith("/po-confirm") || path.startsWith("/md") || path.startsWith("/invoices")) return "ap";
+  if (path.startsWith("/pr") || path.startsWith("/po") || path.startsWith("/gr") || path.startsWith("/ap") || path.startsWith("/po-confirm") || path.startsWith("/md") || path.startsWith("/invoices") || path.startsWith("/payments") || path.startsWith("/returns")) return "ap";
   if (path.startsWith("/project")) return "project";
   if (path.startsWith("/inv")) return "inventory";
   if (path.startsWith("/ar")) return "ar";

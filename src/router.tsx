@@ -4,7 +4,6 @@ import {
   createRouter,
   Outlet,
   Navigate,
-  useParams,
 } from "@tanstack/react-router";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { LoginPage } from "./pages/LoginPage";
@@ -28,7 +27,12 @@ import { POConfirmEditPage } from "./pages/po-confirm/POConfirmEditPage";
 import { POConfirmPrintPage } from "./pages/po-confirm/POConfirmPrintPage";
 import { InvoicePOCreatePage } from "./pages/invoice-po/InvoicePOCreatePage";
 import { LegacyInvoiceDetailRedirect } from "./pages/invoice/LegacyInvoiceDetailRedirect";
-import { VoucherAPCreatePage } from "./pages/voucher/VoucherAPCreatePage";
+import { PaymentListPage } from "./pages/payment/PaymentListPage";
+import { PaymentCreatePage } from "./pages/payment/PaymentCreatePage";
+import { PaymentDetailPage } from "./pages/payment/PaymentDetailPage";
+import { ReturnListPage } from "./pages/return/ReturnListPage";
+import { ReturnCreatePage } from "./pages/return/ReturnCreatePage";
+import { ReturnDetailPage } from "./pages/return/ReturnDetailPage";
 import { MasterDataPage } from "./pages/MasterDataPage";
 import { AuthGuard } from "./components/auth/AuthGuard";
 import { ProjectPage } from "./pages/placeholder/ProjectPage";
@@ -168,15 +172,10 @@ const grInvoiceCreateRoute = createRoute({
   component: () => <Navigate to="/invoices/new" />,
 });
 
-function GrInvoiceDetailRedirect() {
-  const { id } = useParams({ strict: false }) as { id: string };
-  return <Navigate to="/invoices/$id" params={{ id }} />;
-}
-
 const grInvoiceDetailRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/gr/invoices/$id",
-  component: GrInvoiceDetailRedirect,
+  component: LegacyInvoiceDetailRedirect,
 });
 
 const grInvoicePOCreateRoute = createRoute({
@@ -236,10 +235,46 @@ const legacyInvoicePOCreateRoute = createRoute({
   component: () => <Navigate to="/invoices/po-based/new" />,
 });
 
+const paymentsListRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/payments",
+  component: PaymentListPage,
+});
+
+const paymentsCreateRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/payments/new",
+  component: PaymentCreatePage,
+});
+
+const paymentsDetailRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/payments/$doku",
+  component: PaymentDetailPage,
+});
+
 const voucherAPCreateRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/ap/voucher/new",
-  component: VoucherAPCreatePage,
+  component: () => <Navigate to="/payments/new" />,
+});
+
+const returnsListRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/returns",
+  component: ReturnListPage,
+});
+
+const returnsCreateRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/returns/new",
+  component: ReturnCreatePage,
+});
+
+const returnsDetailRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/returns/$doku",
+  component: ReturnDetailPage,
 });
 
 const masterDataRoute = createRoute({
@@ -307,7 +342,13 @@ const routeTree = rootRoute.addChildren([
     poConfirmNewRoute,
     poConfirmDetailRoute,
     poConfirmPrintRoute,
+    paymentsListRoute,
+    paymentsCreateRoute,
+    paymentsDetailRoute,
     voucherAPCreateRoute,
+    returnsListRoute,
+    returnsCreateRoute,
+    returnsDetailRoute,
     masterDataRoute,
     projectRoute,
     inventoryRoute,
