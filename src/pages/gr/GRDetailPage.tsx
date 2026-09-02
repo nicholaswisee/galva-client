@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FilePlus, Save, Trash, Printer } from "lucide-react";
@@ -46,13 +46,15 @@ export function GRDetailPage() {
   const [memo, setMemo] = useState("");
   const [ppn, setPpn] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!gr) return;
+  // Seed the editable form state when the fetched detail arrives.
+  const [prevGr, setPrevGr] = useState<GRDetail | null>(null);
+  if (gr && gr !== prevGr) {
+    setPrevGr(gr);
     setSts(gr.sts ?? "");
     setStatus(gr.status ?? "");
     setMemo(gr.memo ?? "");
     setPpn(null);
-  }, [gr]);
+  }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
