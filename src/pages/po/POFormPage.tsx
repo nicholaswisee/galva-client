@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Controller, useFieldArray, useForm, type Resolver } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Plus,
@@ -121,17 +121,19 @@ export function POFormPage({ mode, doku }: POFormPageProps) {
     defaultValues: emptyDefaults(),
   });
 
-  const { control, register, handleSubmit, reset, watch, setValue, getValues } =
+  const { control, register, handleSubmit, reset, setValue, getValues } =
     form;
   const { fields, append, remove } = useFieldArray({
     control,
     name: "lineItems",
   });
 
-  const watchedLineItems = watch("lineItems");
-  const watchedKodeValas = watch("kode_Valas");
-  const watchedPpn = watch("ppn");
-  const watchedKodeSupplier = watch("kode_Supplier");
+  const watchedLineItems = useWatch({ control, name: "lineItems" });
+  const watchedKodeValas = useWatch({ control, name: "kode_Valas" });
+  const watchedPpn = useWatch({ control, name: "ppn" });
+  const watchedKodeSupplier = useWatch({ control, name: "kode_Supplier" });
+  const formDppNilaiLain = Number(useWatch({ control, name: "dppNilaiLain" })) || 0;
+  const watchedKurs = Number(useWatch({ control, name: "kurs" })) || 1;
 
   // Load detail into form on edit/print mode
   useEffect(() => {
@@ -156,11 +158,9 @@ export function POFormPage({ mode, doku }: POFormPageProps) {
     0,
   );
   const netAmount = grossAmount - discAmount;
-  const formDppNilaiLain = Number(watch("dppNilaiLain")) || 0;
   const dppNilaiLainCalc = formDppNilaiLain > 0 ? formDppNilaiLain : netAmount;
   const vat = dppNilaiLainCalc * ((Number(watchedPpn) || 0) / 100);
   const purchaseAmount = dppNilaiLainCalc + vat;
-  const watchedKurs = Number(watch("kurs")) || 1;
   const grandTotal = purchaseAmount * watchedKurs;
 
   const recalcLine = (index: number) => {
@@ -362,7 +362,7 @@ export function POFormPage({ mode, doku }: POFormPageProps) {
     }
   };
 
-  const watchedDoku = watch("doku");
+  const watchedDoku = useWatch({ control, name: "doku" });
   const isSaving = createPO.isPending || updatePO.isPending;
 
   return (
