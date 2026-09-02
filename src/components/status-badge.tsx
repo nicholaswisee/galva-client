@@ -13,6 +13,8 @@ const statusConfig: Record<string, { variant: "default" | "secondary" | "destruc
   Open: { variant: "outline" },
   "Partially Paid": { variant: "secondary" },
   Paid: { variant: "default" },
+  Active: { variant: "default", label: "Active" },
+  Closed: { variant: "secondary", label: "Closed" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
