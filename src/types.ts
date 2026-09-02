@@ -223,6 +223,104 @@ export interface PaymentListItem {
   eTag: string;
 }
 
+export interface PaymentDetailLine {
+  pkbas: number;
+  doku_Faktur: string | null;
+  doku_LPB: string | null;
+  nilai: number | null;
+  totalNilai: number | null;
+  diskonTunai: number | null;
+  keterangan: string | null;
+}
+
+export interface PaymentDetail {
+  doku: string;
+  tgl: string | null;
+  kode_Supplier: string | null;
+  supplierName: string | null;
+  kode_BankSupplier: string | null;
+  keterangan: string | null;
+  nilaiKas: number | null;
+  nilaiGiro: number | null;
+  nilMuka: number | null;
+  sts: string;
+  kode_Valas: string | null;
+  kurs: number;
+  eTag: string;
+  lineItems: PaymentDetailLine[];
+}
+
+export interface ReturnListItem {
+  doku: string;
+  tgl: string | null;
+  doku_Faktur: string | null;
+  kode_Supplier: string | null;
+  supplierName: string | null;
+  kode_Valas: string | null;
+  nilai: number;
+  sts: string;
+  syncToCMG: boolean;
+  eTag: string;
+}
+
+export interface ReturnEligibleLine {
+  doku_Faktur: string;
+  doku_LPB: string;
+  npo: string | null;
+  kode_Brg: string;
+  alias: string | null;
+  kode_Gudang: string | null;
+  harga: number;
+  hpp: number;
+  ppnBm: number;
+  jumlahTersedia: number;
+}
+
+export interface ReturnLineItem {
+  pKbas: number;
+  doku_Faktur: string;
+  doku_LPB: string | null;
+  npo: string | null;
+  kode_Brg: string;
+  kode_Gudang: string | null;
+  alias: string | null;
+  jumlah: number;
+  harga: number;
+  diskon: number;
+  ppn: number;
+  ppnBm: number;
+  hpp: number;
+  nilai: number;
+  noUrut: number;
+}
+
+export interface ReturnDetail {
+  doku: string;
+  tgl: string | null;
+  doku_Faktur: string | null;
+  kode_Supplier: string | null;
+  supplierName: string | null;
+  kode_Dept: string | null;
+  kode_Valas: string | null;
+  kurs: number;
+  ppn: number;
+  diskon: number;
+  total: number;
+  nilai: number;
+  memo: string | null;
+  sts: string;
+  statusGL: string | null;
+  validasi: boolean;
+  syncToCMG: boolean;
+  createdInWMS: boolean;
+  type: string | null;
+  tipeRetur: string | null;
+  doku_FP: string | null;
+  tgl_FP: string | null;
+  eTag: string;
+  lineItems: ReturnLineItem[];
+}
+
 export interface AuthResponse {
   accessToken: string;
   expiresIn: number;
