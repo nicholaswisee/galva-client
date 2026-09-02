@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FilePlus, Save, Trash, Printer } from "lucide-react";
@@ -37,11 +37,13 @@ export function InvoiceDetailPage() {
   const [sts, setSts] = useState("");
   const [keterangan, setKeterangan] = useState("");
 
-  useEffect(() => {
-    if (!inv) return;
+  // Seed the editable form state when the fetched detail arrives.
+  const [prevInv, setPrevInv] = useState<InvoiceDetail | null>(null);
+  if (inv && inv !== prevInv) {
+    setPrevInv(inv);
     setSts(inv.sts ?? "");
     setKeterangan(inv.keterangan ?? "");
-  }, [inv]);
+  }
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

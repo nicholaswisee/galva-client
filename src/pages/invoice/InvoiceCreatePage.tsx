@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Plus, Trash2, Save, FilePlus, Pencil, Trash, Printer } from "lucide-react";
@@ -56,17 +56,18 @@ export function InvoiceCreatePage() {
     },
   });
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const doku_LPB = params.get("doku_LPB");
-    if (!doku_LPB || grs === undefined) return;
-    if (grLinks.some((l) => l.doku_LPB === doku_LPB)) return;
+  // Seed a GR link from a ?doku_LPB= URL param once the GR list has loaded.
+  const doku_LPB = new URLSearchParams(location.search).get("doku_LPB");
+  const [appliedParam, setAppliedParam] = useState<string | null>(null);
+  if (doku_LPB && doku_LPB !== appliedParam && grs !== undefined) {
     const gr = grs.find((g) => g.doku === doku_LPB);
-    if (!gr) return;
-    const updated = [...grLinks, { doku_LPB, nilaiLPB: gr.nilai ?? 0 }];
-    setGrLinks(updated);
-    setNilai(updated.reduce((sum, link) => sum + link.nilaiLPB, 0));
-  }, [location.search, grs]);
+    if (gr) {
+      setAppliedParam(doku_LPB);
+      const updated = [...grLinks, { doku_LPB, nilaiLPB: gr.nilai ?? 0 }];
+      setGrLinks(updated);
+      setNilai(updated.reduce((sum, link) => sum + link.nilaiLPB, 0));
+    }
+  }
 
   const availableGRs = (grs ?? []).map((gr) => ({
     code: gr.doku ?? "",
