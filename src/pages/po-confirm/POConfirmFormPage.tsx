@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Controller, useFieldArray, useForm, type Resolver } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   FilePlus,
@@ -87,16 +87,16 @@ export function POConfirmFormPage({ mode, doku }: POConfirmFormPageProps) {
     defaultValues: emptyDefaults(),
   });
 
-  const { control, register, handleSubmit, reset, watch, setValue, getValues } =
+  const { control, register, handleSubmit, reset, setValue, getValues } =
     form;
   const { fields, replace } = useFieldArray({
     control,
     name: "lineItems",
   });
 
-  const watchedDokuPO = watch("doku_PO");
-  const watchedLineItems = watch("lineItems");
-  const watchedDoku = watch("doku");
+  const watchedDokuPO = useWatch({ control, name: "doku_PO" });
+  const watchedLineItems = useWatch({ control, name: "lineItems" });
+  const watchedDoku = useWatch({ control, name: "doku" });
 
   // Fetch PO detail:
   //   - in new mode: from the picked PO in the dropdown
@@ -173,8 +173,15 @@ export function POConfirmFormPage({ mode, doku }: POConfirmFormPageProps) {
       memo: conf.memo ?? "",
       lineItems: lines,
     });
-    setPpnPct(12);
   }, [mode, detailQuery.data, linkedPOQuery, reset]);
+
+  // Default the VAT percent to 12% for each newly loaded document.
+  const loadedDoku = mode === "new" ? null : (detailQuery.data?.data.doku ?? null);
+  const [prevLoadedDoku, setPrevLoadedDoku] = useState<string | null>(null);
+  if (loadedDoku !== prevLoadedDoku) {
+    setPrevLoadedDoku(loadedDoku);
+    setPpnPct(12);
+  }
 
   // Recalculate line total & totals when confirmQty / harga changes
   const grossAmount = (watchedLineItems ?? []).reduce(
