@@ -9,8 +9,9 @@ The UI covers the full P2P flow:
 
 ```
 Dashboard  →  Purchase Requisitions (PR)  →  Purchase Orders (PO)
-            →  Goods Receipts (GR)         →  AP Invoices
-            →  Master Data (reference)
+            →  PO Confirmations             →  Goods Receipts (GR)
+            →  AP Invoices                  →  Payments
+            →  Purchase Returns (optional)  →  Master Data (reference)
 ```
 
 ## Tech stack
@@ -53,6 +54,7 @@ The dev server reads `.env.local`. The committed `.env.local` points to
 | Command           | What it does                                                                                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `bun run dev`     | Start Vite dev server on port 5173. Service worker is enabled (`devOptions.enabled: true`) so PWA features are testable in dev. |
+| `bun run test`    | Run the Vitest unit suite for API helpers, schemas, and return calculations.                                                       |
 | `bun run build`   | `tsc -b && vite build` — type-check then bundle to `dist/`.                                                                     |
 | `bun run preview` | Serve the production build locally.                                                                                             |
 | `bun run lint`    | ESLint with TypeScript + React hooks rules.                                                                                     |
@@ -127,7 +129,7 @@ policies the API enforces:
 `/api/auth/refresh` to try a silent session restore from the cookie.
 
 `AuthGuard` (in `router.tsx`) wraps the dashboard route tree and
-redirects unauthenticated visits to `/login` with a `?redirect=…`
+redirects unauthenticated visits to `/in` with a `?redirect=…`
 search param so the user lands back where they tried to go after
 signing in.
 
@@ -139,18 +141,20 @@ the exact shape of the path parameters declared on the route, and
 typed search params are a first-class concept.
 
 ```
-/login                                 (anonymous)
-/                                       (auth) DashboardPage
-/purchase-requisitions                  PRListPage
-/purchase-requisitions/new              PRCreatePage
-/purchase-requisitions/$id              PRDetailPage
-/purchase-orders                        POListPage
-/purchase-orders/new                    POCreatePage
-/goods-receipts                         GRListPage
-/goods-receipts/new                     GRCreatePage
-/invoices                               InvoiceListPage
-/invoices/new                           InvoiceCreatePage
-/master-data                            MasterDataPage
+/in                                    (anonymous) LoginPage
+/                                      (auth) DashboardPage
+/pr, /pr/new, /pr/$id                  Purchase requisitions
+/po, /po/new, /po/$id, /po/$id/print   Purchase orders
+/po-confirm, /po-confirm/new, /po-confirm/$id
+                                      PO confirmations
+/gr, /gr/new, /gr/$id                  Goods receipts
+/invoices, /invoices/new, /invoices/$id
+                                      AP invoices
+/invoices/po-based/new                 PO-based AP invoice
+/payments, /payments/new, /payments/$doku
+                                      Payments
+/returns, /returns/new, /returns/$doku Purchase returns
+/md                                    Master data
 ```
 
 `defaultPreload: "intent"` means routes start loading their
@@ -167,16 +171,18 @@ The screens mirror the API's entity model one-to-one:
 | PR create      | `POST /api/purchase-requisitions` (auto-generates Doku `SPB-YYYYMMDD-NNN`) |
 | PO list        | `GET /api/purchase-orders`                                                 |
 | PO create      | `POST /api/purchase-orders` (auto-generates Doku `PO-YYYYMMDD-NNN`)        |
+| PO confirmations | `GET/POST /api/po-confirmations`, `GET /api/po-confirmations/{doku}`     |
 | GR list        | `GET /api/goods-receipts`                                                  |
 | GR create      | `POST /api/goods-receipts`                                                 |
 | Invoice list   | `GET /api/invoices`                                                        |
 | Invoice create | `POST /api/invoices`                                                       |
+| Payments       | `GET/POST /api/payments`, `GET/PUT /api/payments/{doku}`                   |
+| Purchase returns | `GET/POST /api/purchase-returns`, `GET/PUT/DELETE /api/purchase-returns/{doku}` |
 | Master data    | `GET /api/master-data/{vendors,departments,inventory,warehouses,banks}`    |
 
-Concurrency: the API returns `ETag` headers on every read; for
-write paths, the client should send `If-Match: <base64-etag>` on
-PUT. (Detail pages aren't wired for edit yet — see
-[Roadmap](#roadmap).)
+Concurrency: the API returns `ETag` headers on every read. PR, PO, and return
+updates use `If-Match: <base64-etag>`; GR and invoice update DTOs carry their
+ETag in the request body. Deletes use `If-Match`.
 
 ## PWA / offline
 
